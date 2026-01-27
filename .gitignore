@@ -1,0 +1,16 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+.ruff_cache/
+private_test/
+
+# Virtual environments
+.venv
+
+# Secrets
+output-token.txt

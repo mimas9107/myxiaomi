@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vacuumd Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style>
+        [x-cloak] { display: none !important; }
+    </style>
+</head>
+<body class="bg-slate-900 text-white font-sans min-h-screen">
+    <div class="container mx-auto px-4 py-8" x-data="vacuumApp()">
+        <header class="mb-8 flex justify-between items-center">
+            <h1 class="text-3xl font-bold text-sky-400">Vacuumd Controller</h1>
+            <div class="text-sm text-slate-400">
+                Server Status: <span class="text-green-400">Online</span>
+            </div>
+        </header>
+
+        <!-- Device Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <template x-for="device in devices" :key="device.id">
+                <div class="bg-slate-800 rounded-xl p-6 shadow-xl border border-slate-700">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <h2 class="text-xl font-semibold" x-text="device.name"></h2>
+                            <p class="text-xs text-slate-500" x-text="device.ip"></p>
+                        </div>
+                        <span class="px-2 py-1 rounded text-xs font-bold" 
+                              :class="getStatusColor(device.status?.state)"
+                              x-text="device.status?.state || 'Connecting...'"></span>
+                    </div>
+
+                    <!-- Status Info -->
+                    <div class="space-y-3 mb-6">
+                        <div class="flex justify-between items-center">
+                            <span class="text-slate-400">Battery</span>
+                            <div class="flex items-center">
+                                <span class="mr-2 font-mono" x-text="(device.status?.battery || 0) + '%'"></span>
+                                <div class="w-12 h-2 bg-slate-700 rounded-full overflow-hidden">
+                                    <div class="h-full bg-green-500" :style="'width: ' + (device.status?.battery || 0) + '%'"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-slate-400">Area Cleaned</span>
+                            <span x-text="(device.status?.cleaned_area || 0) + ' m²'"></span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-slate-400">Cleaning Time</span>
+                            <span x-text="device.status?.cleaning_since || '--:--'"></span>
+                        </div>
+                    </div>
+
+                    <!-- Controls -->
+                    <div class="grid grid-cols-2 gap-2">
+                        <button @click="execute(device.id, 'start')" 
+                                class="bg-sky-600 hover:bg-sky-500 py-2 rounded font-medium transition">Start</button>
+                        <button @click="execute(device.id, 'pause')" 
+                                class="bg-slate-700 hover:bg-slate-600 py-2 rounded font-medium transition">Pause</button>
+                        <button @click="execute(device.id, 'home')" 
+                                class="col-span-2 bg-amber-600 hover:bg-amber-500 py-2 rounded font-medium transition mt-2">Return Home</button>
+                    </div>
+                </div>
+            </template>
+        </div>
+    </div>
+
+    <script>
+        function vacuumApp() {
+            return {
+                devices: [],
+                async init() {
+                    await this.fetchDevices();
+                    // Initial status fetch
+                    this.devices.forEach(d => this.fetchStatus(d.id));
+                    // Poll status every 5 seconds
+                    setInterval(() => {
+                        this.devices.forEach(d => this.fetchStatus(d.id));
+                    }, 5000);
+                },
+                async fetchDevices() {
+                    const res = await fetch('/v1/devices/');
+                    this.devices = await res.json();
+                    this.devices.forEach(d => d.status = null);
+                },
+                async fetchStatus(id) {
+                    try {
+                        const res = await fetch(`/v1/devices/${id}/status`);
+                        const status = await res.json();
+                        const idx = this.devices.findIndex(d => d.id === id);
+                        if (idx !== -1) this.devices[idx].status = status;
+                    } catch (e) {
+                        console.error('Fetch error:', e);
+                    }
+                },
+                async execute(id, command) {
+                    try {
+                        const res = await fetch('/v1/control/execute', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ device_id: id, command: command })
+                        });
+                        const result = await res.json();
+                        alert(result.message);
+                        this.fetchStatus(id);
+                    } catch (e) {
+                        alert('Error executing command');
+                    }
+                },
+                getStatusColor(state) {
+                    if (!state) return 'bg-slate-700 text-slate-300';
+                    if (state.includes('Cleaning')) return 'bg-green-500/20 text-green-400';
+                    if (state.includes('Charging')) return 'bg-sky-500/20 text-sky-400';
+                    if (state.includes('Error')) return 'bg-red-500/20 text-red-400';
+                    return 'bg-amber-500/20 text-amber-400';
+                }
+            }
+        }
+    </script>
+</body>
+</html>
