@@ -1,5 +1,16 @@
 # 更新日誌 (CHANGELOG)
 
+### [0.2.1] - 2026-01-27
+
+### 新增
+- 實作地圖分區與房間清掃支援 (`segment_clean`, `zoned_clean`)。
+- 增加手動房間映射功能 (`room_mapping`)，解決舊版 Roborock S5 韌體無法在 App 中命名房間的限制。
+- 新增 `debug_segments.py` 與 `inspect_robot.py` 偵錯工具。
+
+### 優化
+- 強化 API 相容性：自動偵測並適應 `python-miio` 不同版本間的方法命名差異 (如 `app_zoned_clean` vs `zoned_clean`)。
+- 改善房間發現邏輯：當設備不支援命名房間時，自動回退 (Fallback) 至獲取原始分區狀態。
+
 ## [0.2.0] - 2026-01-27
 
 ### 新增

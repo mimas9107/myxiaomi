@@ -32,7 +32,14 @@ vacuumd 是一個針對 Roborock / Xiaomi 掃地機器人開發的家庭內網�
 
 ### 啟動伺服器
 執行以下腳本即可自動釋放埠號並啟動服務：
+```bash
 bash start-server.sh
+```
+
+### 房間與分區管理
+針對部分 Roborock S5 舊版韌體無法在 App 命名房間的問題，系統支援手動配置 `room_mapping`。
+- **取得房間列表**: `GET /v1/devices/{id}/rooms`
+- **執行分區清掃**: 支援 `segment_clean` 與 `zoned_clean` 指令，並具備自動向下相容的 API 調用邏輯。
 
 ### 命令列工具使用
 uv run python vacuumd/cli/main.py status
