@@ -2,7 +2,7 @@ import os
 import yaml
 from pathlib import Path
 from pydantic import BaseModel
-from typing import List
+from typing import List, Dict, Optional
 
 
 class DeviceConfig(BaseModel):
@@ -10,6 +10,7 @@ class DeviceConfig(BaseModel):
     name: str
     ip: str
     token: str
+    room_mapping: Optional[Dict[int, str]] = {}
 
 
 class ServerConfig(BaseModel):

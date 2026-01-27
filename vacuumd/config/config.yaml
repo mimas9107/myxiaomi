@@ -3,6 +3,10 @@ devices:
     name: "Living Room Vacuum"
     ip: "192.168.1.9"
     token: "64517365385135547437355277465441"
+    room_mapping:
+      16: "Living Room"
+      17: "Kitchen"
+      18: "Bedroom"
 
 server:
   host: "0.0.0.0"

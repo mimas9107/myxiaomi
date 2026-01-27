@@ -20,91 +20,32 @@ class VacuumController:
     Enhanced controller for Roborock/Xiaomi Vacuum Robots with retry and caching.
     """
 
-    def __init__(self, ip: str, token: str, name: str = "Vacuum"):
+    def __init__(
+        self, ip: str, token: str, name: str = "Vacuum", device_id: str = None
+    ):
         self.ip = ip
         self.token = token
         self.name = name
+        self.device_id = device_id
         self.device = RoborockVacuum(ip, token)
         # Cache for status to avoid frequent UDP requests (TTL from settings)
         self._status_cache = TTLCache(maxsize=1, ttl=settings.server.cache_ttl)
         self._cache_key = f"{ip}_status"
 
-    @retry(
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=1, max=10),
-        retry=retry_if_exception_type(Exception),
-        reraise=True,
-    )
-    def _safe_call(self, method_name: str, *args, **kwargs):
-        """
-        Safely call a miio method with retry logic.
-        """
-        method = getattr(self.device, method_name)
-        logger.debug(f"Calling {method_name} on {self.name} ({self.ip})")
-        return method(*args, **kwargs)
-
-    def status(self) -> VacuumState:
-        """
-        Get robot status with caching.
-        Requests status from the physical device and converts it to VacuumState.
-        """
-        if self._cache_key in self._status_cache:
-            return self._status_cache[self._cache_key]
-
-        try:
-            raw_status = self._safe_call("status")
-            state = VacuumState.from_miio(raw_status)
-            self._status_cache[self._cache_key] = state
-            return state
-        except Exception as e:
-            logger.error(f"Failed to get status from {self.name}: {e}")
-            raise
-
-    def start(self):
-        """Start cleaning."""
-        return self._safe_call("start")
-
-    def pause(self):
-        """Pause cleaning."""
-        return self._safe_call("pause")
-
-    def home(self):
-        """Return to dock."""
-        return self._safe_call("home")
-
-    def spot(self):
-        """Spot cleaning."""
-        return self._safe_call("spot")
-
-    def set_fan_speed(self, speed: int):
-        """Set fan speed (usually 60-102)."""
-        if not (60 <= speed <= 102):
-            raise ValueError("Fan speed must be between 60 and 102")
-        return self._safe_call("set_fan_speed", speed)
-
-    def find(self):
-        """Find the robot (make it sound)."""
-        return self._safe_call("find")
-
-    def get_maps(self):
-        """Get list of stored maps (floors)."""
-        try:
-            if hasattr(self.device, "get_maps"):
-                return self._safe_call("get_maps")
-            return None
-        except Exception as e:
-            logger.warning(f"Device does not support get_maps: {e}")
-            return None
-
     def get_room_mapping(self):
         """Get mapping of segment IDs to room names."""
+        # 1. 優先從本地配置獲取 (解決舊版韌體無法讀取房間列表的問題)
+        if self.device_id:
+            for dev_cfg in settings.devices:
+                if dev_cfg.id == self.device_id and dev_cfg.room_mapping:
+                    return [[int(k), v] for k, v in dev_cfg.room_mapping.items()]
+
+        # 2. 如果配置中沒有，嘗試從機器人獲取
         try:
             rooms = self._safe_call("get_room_mapping")
             if not rooms:
-                # 備案：如果沒有具名房間，嘗試獲取原始 segment 狀態
                 segments = self._safe_call("get_segment_status")
                 if segments:
-                    # 返回格式一致的列表 [[id, "Unknown Room"], ...]
                     return [[s, f"Segment {s}"] for s in segments]
             return rooms
         except Exception as e:

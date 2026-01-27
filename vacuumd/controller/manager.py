@@ -15,7 +15,10 @@ class DeviceManager:
     def _initialize_devices(self):
         for dev_cfg in settings.devices:
             controller = VacuumController(
-                ip=dev_cfg.ip, token=dev_cfg.token, name=dev_cfg.name
+                ip=dev_cfg.ip,
+                token=dev_cfg.token,
+                name=dev_cfg.name,
+                device_id=dev_cfg.id,
             )
             self.devices[dev_cfg.id] = controller
             print(f"Initialized device: {dev_cfg.name} ({dev_cfg.id})")
