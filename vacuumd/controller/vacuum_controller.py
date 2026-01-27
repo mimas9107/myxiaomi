@@ -88,11 +88,21 @@ class VacuumController:
 
     def get_maps(self):
         """Get list of stored maps (floors)."""
-        return self._safe_call("get_maps")
+        try:
+            if hasattr(self.device, "get_maps"):
+                return self._safe_call("get_maps")
+            return None
+        except Exception as e:
+            logger.warning(f"Device does not support get_maps: {e}")
+            return None
 
     def get_room_mapping(self):
         """Get mapping of segment IDs to room names."""
-        return self._safe_call("get_room_mapping")
+        try:
+            return self._safe_call("get_room_mapping")
+        except Exception as e:
+            logger.warning(f"Device does not support get_room_mapping: {e}")
+            return []
 
     def segment_clean(self, segment_ids: list[int]):
         """Clean specific rooms by their segment IDs."""
