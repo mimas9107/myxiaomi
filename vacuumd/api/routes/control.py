@@ -29,6 +29,20 @@ async def execute_command(req: CommandRequest):
             if speed is None:
                 raise HTTPException(status_code=400, detail="Speed parameter required")
             controller.set_fan_speed(int(speed))
+        elif req.command == "segment_clean":
+            segments = req.params.get("segments")
+            if not isinstance(segments, list):
+                raise HTTPException(status_code=400, detail="Segments list required")
+            controller.segment_clean(segments)
+        elif req.command == "zoned_clean":
+            zones = req.params.get("zones")
+            if not isinstance(zones, list):
+                raise HTTPException(status_code=400, detail="Zones list required")
+            controller.zoned_clean(zones)
+        elif req.command == "get_maps":
+            return {"status": "success", "data": controller.get_maps().map_list}
+        elif req.command == "get_rooms":
+            return {"status": "success", "data": controller.get_room_mapping()}
         else:
             raise HTTPException(
                 status_code=400, detail=f"Unknown command: {req.command}"

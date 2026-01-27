@@ -85,3 +85,23 @@ class VacuumController:
     def find(self):
         """Find the robot (make it sound)."""
         return self._safe_call("find")
+
+    def get_maps(self):
+        """Get list of stored maps (floors)."""
+        return self._safe_call("get_maps")
+
+    def get_room_mapping(self):
+        """Get mapping of segment IDs to room names."""
+        return self._safe_call("get_room_mapping")
+
+    def segment_clean(self, segment_ids: list[int]):
+        """Clean specific rooms by their segment IDs."""
+        return self._safe_call("app_segment_clean", segment_ids)
+
+    def zoned_clean(self, zones: list[list[int]]):
+        """
+        Clean specific zones.
+        Each zone is [x1, y1, x2, y2, iterations].
+        Coordinates are usually 15000-35000.
+        """
+        return self._safe_call("app_zoned_clean", zones)
