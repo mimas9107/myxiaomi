@@ -106,6 +106,8 @@ class VacuumController:
 
     def segment_clean(self, segment_ids: list[int]):
         """Clean specific rooms by their segment IDs."""
+        if hasattr(self.device, "segment_clean"):
+            return self._safe_call("segment_clean", segment_ids)
         return self._safe_call("app_segment_clean", segment_ids)
 
     def zoned_clean(self, zones: list[list[int]]):
@@ -114,4 +116,6 @@ class VacuumController:
         Each zone is [x1, y1, x2, y2, iterations].
         Coordinates are usually 15000-35000.
         """
+        if hasattr(self.device, "zoned_clean"):
+            return self._safe_call("zoned_clean", zones)
         return self._safe_call("app_zoned_clean", zones)
