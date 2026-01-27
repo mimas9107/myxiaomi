@@ -99,9 +99,16 @@ class VacuumController:
     def get_room_mapping(self):
         """Get mapping of segment IDs to room names."""
         try:
-            return self._safe_call("get_room_mapping")
+            rooms = self._safe_call("get_room_mapping")
+            if not rooms:
+                # 備案：如果沒有具名房間，嘗試獲取原始 segment 狀態
+                segments = self._safe_call("get_segment_status")
+                if segments:
+                    # 返回格式一致的列表 [[id, "Unknown Room"], ...]
+                    return [[s, f"Segment {s}"] for s in segments]
+            return rooms
         except Exception as e:
-            logger.warning(f"Device does not support get_room_mapping: {e}")
+            logger.warning(f"Device does not support room mapping: {e}")
             return []
 
     def segment_clean(self, segment_ids: list[int]):
