@@ -1,5 +1,11 @@
 from abc import ABC, abstractmethod
 import argparse
+
+"""
+小米雲端設備資訊與 Token 提取工具。
+此工具可協助使用者獲取掃地機器人等設備的 IP 與 Token，用於區域網路控制。
+"""
+
 import base64
 import hashlib
 import hmac
@@ -105,6 +111,11 @@ _LOGGER = logging.getLogger("token_extractor")
 
 
 class XiaomiCloudConnector(ABC):
+    """
+    小米雲端連接器基類。
+    負責處理 API 通訊、加密、Device ID 生成以及 Token 獲取等核心邏輯。
+    """
+
     """
     Base class for connecting to Xiaomi Cloud.
     Provides methods for API communication, encryption, and device discovery.
