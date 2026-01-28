@@ -4,6 +4,7 @@ from fastapi.responses import FileResponse
 from vacuumd.api.routes import devices, control
 from vacuumd.config.settings import settings
 from vacuumd.scheduler.engine import automation
+from vacuumd.controller.cloud_faker import cloud_faker
 import os
 import logging
 
@@ -26,6 +27,7 @@ async def startup_event():
     2. 設定初始的清掃任務 (Demo 範例)。
     """
     automation.start()
+    cloud_faker.start()
 
     # 範例任務：每天 13:00 自動執行一次清掃
     # 注意：device_id 必須對應 config.yaml 中的設定

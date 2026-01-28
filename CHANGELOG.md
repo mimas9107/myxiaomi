@@ -1,5 +1,15 @@
 # 更新日誌 (CHANGELOG)
 
+### [0.3.1] - 2026-01-28
+
+### 新增
+- 整合 `micloudfaker` 理念，實作 `CloudFaker` 控制器模組。內建 UDP/TCP 8053 伺服器，模擬小米雲端握手響應。
+- 更新 `setiptables_vacuum_fix.sh` (V4)，新增自動檢測 usb0 狀態並實施「流量截流至 Faker」的策略。
+- 支援對 `*.io.mi.com` 的 TCP 80 與 UDP 8053 流量攔截與重定向。
+
+### 優化
+- 強化斷網防休眠策略：結合「Fake Cloud 響應」與「主動 Hello 喚醒」，雙層保護掃地機 LAN 控制權。
+
 ### [0.3.0] - 2026-01-28
 
 ### 新增

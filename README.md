@@ -19,8 +19,9 @@ vacuumd 是一個針對 Roborock / Xiaomi 掃地機器人開發的家庭內網�
 ## 核心特性
 1. 穩定通訊：實作指數退避重試機制，並手動調整底層 Timeout 至 5s，解決內網 UDP 丟包與斷網延遲問題。
 2. 斷網容錯 (LAN-First Design)：
-   - 整合 RPi4 網關規則：透過 IPTables 快速拒絕與 DNS 攔截 (Fail-Fast)，防止機器人在外部網路中斷時掛起本地服務。
-   - 主動喚醒機制：偵測到通訊異常時發送 `miIO.info` 喚醒封包，解決掃地機在斷網環境下的 UDP 埠口階段性休眠問題。
+   - MiCloud Faker (整合自 micloudfaker 理念)：內建微型小米雲端模擬器，響應機器的 HELO 與 HTTP 請求，徹底防止掃地機因斷網進入「離線休眠」或頻繁重啟 Wi-Fi。
+   - 整合 RPi4 網關規則：透過 IPTables 透明導向技術，在斷網時自動將雲端流量截流至本地 Faker。
+   - 主動喚醒機制：偵測到通訊異常時發送 `miIO.info` 喚醒封包，雙重保障 UDP 埠口存活。
    - 離線優先顯示：Web Dashboard 整合本地化資源，並提供連線連通性 (`is_reachable`) 視覺化標記。
 3. 狀態快取：設定 TTL 快取，避免頻繁查詢導致機器人 CPU 過載。
 3. 智慧排程：
