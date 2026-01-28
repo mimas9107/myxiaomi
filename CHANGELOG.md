@@ -1,5 +1,21 @@
 # 更新日誌 (CHANGELOG)
 
+### [0.3.0] - 2026-01-28
+
+### 新增
+- 實作「斷網連線修復」腳本 `setiptables_vacuum_fix.sh`，專為 RPi4 網關環境設計，包含透明 DNS 攔截與 STUN 劫持。
+- 在 `VacuumController` 中增加「主動喚醒機制」，針對斷網時掃地機 UDP 埠口休眠問題進行強制握手。
+- 為 `VacuumState` 增加 `is_reachable` 狀態標記，提供更精確的 LAN 連線診斷。
+- 下載所有前端 CDN 資源 (Tailwind, Alpine.js) 至本機 `static/js`，支援完全無網路環境下的儀表板顯示。
+
+### 優化
+- 調整底層通訊超時 (Timeout) 從預設值提升至 5 秒，增強在機器人 CPU 忙碌時的耐受力。
+- 改善 UI 儀表板，增加設備離線 (Unreachable) 的視覺警示與灰色標記。
+
+### 修復
+- 修正 `RoborockVacuum` 初始化時無法接受 timeout 參數的 TypeError。
+- 補回在先前重構中遺失的 `_safe_call` 裝飾器封裝方法。
+
 ### [0.2.1] - 2026-01-27
 
 ### 新增

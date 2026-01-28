@@ -46,15 +46,17 @@ async def shutdown_event():
 app.include_router(devices.router, prefix="/v1/devices", tags=["設備管理"])
 app.include_router(control.router, prefix="/v1/control", tags=["清掃控制"])
 
-# 設定靜態資源路徑 (用於提供 Web 控制介面)
-static_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "view")
-app.mount("/static", StaticFiles(directory=static_dir), name="static")
+# 設定靜態資源路徑 (用於提供 JS/CSS 等資源)
+view_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "view")
+app.mount(
+    "/static", StaticFiles(directory=os.path.join(view_dir, "static")), name="static"
+)
 
 
 @app.get("/")
 async def root():
     """首頁：直接回傳控制面板 HTML。"""
-    return FileResponse(os.path.join(static_dir, "index.html"))
+    return FileResponse(os.path.join(view_dir, "index.html"))
 
 
 @app.get("/health")

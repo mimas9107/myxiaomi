@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Vacuumd Dashboard</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="/static/js/tailwind.min.js"></script>
+    <script defer src="/static/js/alpine.min.js"></script>
     <style>
         [x-cloak] { display: none !important; }
     </style>
@@ -32,6 +32,14 @@
                               :class="getStatusColor(device.status?.state)"
                               x-text="device.status?.state || 'Connecting...'"></span>
                     </div>
+
+                    <!-- Reachability Indicator -->
+                    <template x-if="device.status && !device.status.is_reachable">
+                        <div class="mb-4 p-2 bg-red-900/30 border border-red-800 rounded text-red-400 text-xs flex items-center">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                            LAN Connection Lost / Device Offline
+                        </div>
+                    </template>
 
                     <!-- Status Info -->
                     <div class="space-y-3 mb-6">
@@ -111,7 +119,7 @@
                     }
                 },
                 getStatusColor(state) {
-                    if (!state) return 'bg-slate-700 text-slate-300';
+                    if (!state || state.includes('Unreachable')) return 'bg-slate-700 text-slate-300';
                     if (state.includes('Cleaning')) return 'bg-green-500/20 text-green-400';
                     if (state.includes('Charging')) return 'bg-sky-500/20 text-sky-400';
                     if (state.includes('Error')) return 'bg-red-500/20 text-red-400';
