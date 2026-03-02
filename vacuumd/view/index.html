@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vacuumd Dashboard</title>
+    <title>Vacuumd 控制儀表板</title>
     <script src="/static/js/tailwind.min.js"></script>
     <script defer src="/static/js/alpine.min.js"></script>
     <style>
@@ -13,13 +13,13 @@
 <body class="bg-slate-900 text-white font-sans min-h-screen">
     <div class="container mx-auto px-4 py-8" x-data="vacuumApp()">
         <header class="mb-8 flex justify-between items-center">
-            <h1 class="text-3xl font-bold text-sky-400">Vacuumd Controller</h1>
+            <h1 class="text-3xl font-bold text-sky-400">Vacuumd 控制中心</h1>
             <div class="text-sm text-slate-400">
-                Server Status: <span class="text-green-400">Online</span>
+                伺服器狀態：<span class="text-green-400">在線</span>
             </div>
         </header>
 
-        <!-- Device Grid -->
+        <!-- 裝置卡片 -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <template x-for="device in devices" :key="device.id">
                 <div class="bg-slate-800 rounded-xl p-6 shadow-xl border border-slate-700">
@@ -30,21 +30,21 @@
                         </div>
                         <span class="px-2 py-1 rounded text-xs font-bold" 
                               :class="getStatusColor(device.status?.state)"
-                              x-text="device.status?.state || 'Connecting...'"></span>
+                              x-text="translateState(device.status?.state)"></span>
                     </div>
 
-                    <!-- Reachability Indicator -->
+                    <!-- 連線狀態提示 -->
                     <template x-if="device.status && !device.status.is_reachable">
                         <div class="mb-4 p-2 bg-red-900/30 border border-red-800 rounded text-red-400 text-xs flex items-center">
                             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-                            LAN Connection Lost / Device Offline
+                            區域網路連線中斷／裝置離線
                         </div>
                     </template>
 
-                    <!-- Status Info -->
+                    <!-- 狀態資訊 -->
                     <div class="space-y-3 mb-6">
                         <div class="flex justify-between items-center">
-                            <span class="text-slate-400">Battery</span>
+                            <span class="text-slate-400">電量</span>
                             <div class="flex items-center">
                                 <span class="mr-2 font-mono" x-text="(device.status?.battery || 0) + '%'"></span>
                                 <div class="w-12 h-2 bg-slate-700 rounded-full overflow-hidden">
@@ -53,23 +53,23 @@
                             </div>
                         </div>
                         <div class="flex justify-between">
-                            <span class="text-slate-400">Area Cleaned</span>
+                            <span class="text-slate-400">已清掃面積</span>
                             <span x-text="(device.status?.cleaned_area || 0) + ' m²'"></span>
                         </div>
                         <div class="flex justify-between">
-                            <span class="text-slate-400">Cleaning Time</span>
+                            <span class="text-slate-400">清掃時間</span>
                             <span x-text="device.status?.cleaning_since || '--:--'"></span>
                         </div>
                     </div>
 
-                    <!-- Controls -->
+                    <!-- 控制按鈕 -->
                     <div class="grid grid-cols-2 gap-2">
                         <button @click="execute(device.id, 'start')" 
-                                class="bg-sky-600 hover:bg-sky-500 py-2 rounded font-medium transition">Start</button>
+                                class="bg-sky-600 hover:bg-sky-500 py-2 rounded font-medium transition">開始清掃</button>
                         <button @click="execute(device.id, 'pause')" 
-                                class="bg-slate-700 hover:bg-slate-600 py-2 rounded font-medium transition">Pause</button>
+                                class="bg-slate-700 hover:bg-slate-600 py-2 rounded font-medium transition">暫停</button>
                         <button @click="execute(device.id, 'home')" 
-                                class="col-span-2 bg-amber-600 hover:bg-amber-500 py-2 rounded font-medium transition mt-2">Return Home</button>
+                                class="col-span-2 bg-amber-600 hover:bg-amber-500 py-2 rounded font-medium transition mt-2">返回充電座</button>
                     </div>
                 </div>
             </template>
@@ -101,7 +101,7 @@
                         const idx = this.devices.findIndex(d => d.id === id);
                         if (idx !== -1) this.devices[idx].status = status;
                     } catch (e) {
-                        console.error('Fetch error:', e);
+                        console.error('讀取狀態失敗：', e);
                     }
                 },
                 async execute(id, command) {
@@ -115,8 +115,20 @@
                         alert(result.message);
                         this.fetchStatus(id);
                     } catch (e) {
-                        alert('Error executing command');
+                        alert('執行指令失敗');
                     }
+                },
+                translateState(state) {
+                    if (!state) return '連線中...';
+                    if (state.includes('Unreachable')) return '無法連線';
+                    if (state.includes('Offline/Busy')) return '離線／忙碌';
+                    if (state.includes('Cleaning')) return '清掃中';
+                    if (state.includes('Returning')) return '返回充電座中';
+                    if (state.includes('Charging')) return '充電中';
+                    if (state.includes('Idle')) return '待機中';
+                    if (state.includes('Pause')) return '已暫停';
+                    if (state.includes('Error')) return '錯誤';
+                    return state;
                 },
                 getStatusColor(state) {
                     if (!state || state.includes('Unreachable')) return 'bg-slate-700 text-slate-300';

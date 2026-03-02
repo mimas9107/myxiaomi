@@ -2,7 +2,7 @@ devices:
   - id: "robot_s5"
     name: "Living Room Vacuum"
     ip: "192.168.1.9"
-    token: "64517365385135547437355277465441"
+    token_env: "VACUUM_ROBOT_S5_TOKEN"
     room_mapping:
       16: "Living Room"
       17: "Kitchen"
@@ -13,3 +13,15 @@ server:
   port: 8000
   cache_ttl: 5
   retry_count: 3
+
+schedules:
+  - task_id: "daily_1300"
+    device_id: "robot_s5"
+    cron: "0 13 * * *"
+    est_duration: 40
+    enabled: true
+  - task_id: "weekday_0930"
+    device_id: "robot_s5"
+    cron: "30 9 * * 1-5"
+    est_duration: 30
+    enabled: true

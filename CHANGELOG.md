@@ -1,5 +1,23 @@
 # 更新日誌 (CHANGELOG)
 
+### [0.3.2] - 2026-03-02
+
+### 新增
+- 支援從 `config.yaml` 的 `schedules` 載入多筆排程任務，啟動時自動註冊。
+- 排程支援標準 5 欄 crontab（`分 時 日 月 週`），可設定平日/特定日期等規則。
+- Web Dashboard 介面文案完成繁體中文化，並新增狀態字串中文轉換顯示。
+
+### 優化
+- `start-server.sh` 強化啟動流程：自動載入 `.env`、檢查必要環境變數、固定使用 `uv` 與專案 `.venv` Python。
+- 新增 `UV_CACHE_DIR` 預設路徑，降低不同執行環境下的快取權限問題。
+- 啟動日誌改為顯示實際載入的排程筆數，便於排程配置驗證。
+
+### 修復
+- 修正 API/Controller 介面落差：補齊 `segment_clean`、`zoned_clean`、`get_room_mapping`。
+- 修正 `status()` 在 Unreachable 狀態下的短期快取邏輯，避免不合法 `TTLCache` 用法。
+- 修正 mutable default 風險（`room_mapping`、`params`），避免跨請求/實例共享資料。
+- 設定檔 token 改為支援 `token_env` 注入，避免明碼 token 外洩風險。
+
 ### [0.3.1] - 2026-01-28
 
 ### 新增

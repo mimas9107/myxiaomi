@@ -24,17 +24,31 @@ async def startup_event():
     """
     應用程式啟動時的初始化邏輯：
     1. 啟動自動化排程引擎 (Automation Engine)。
-    2. 設定初始的清掃任務 (Demo 範例)。
+    2. 從設定檔載入並註冊排程任務。
     """
     automation.start()
     cloud_faker.start()
 
-    # 範例任務：每天 13:00 自動執行一次清掃
-    # 注意：device_id 必須對應 config.yaml 中的設定
-    automation.add_cleaning_job(
-        task_id="daily_clean", device_id="robot_s5", cron="00 13 * * *", est_duration=40
-    )
-    logger.info("系統啟動成功：排程引擎已運行並載入初始任務。")
+    loaded = 0
+    for schedule in settings.schedules:
+        if not schedule.enabled:
+            continue
+        try:
+            automation.add_cleaning_job(
+                task_id=schedule.task_id,
+                device_id=schedule.device_id,
+                cron=schedule.cron,
+                est_duration=schedule.est_duration,
+            )
+            loaded += 1
+        except Exception as exc:
+            logger.error(
+                "排程任務載入失敗: task_id=%s cron=%s error=%s",
+                schedule.task_id,
+                schedule.cron,
+                exc,
+            )
+    logger.info("系統啟動成功：排程引擎已運行，已載入 %s 筆排程任務。", loaded)
 
 
 @app.on_event("shutdown")

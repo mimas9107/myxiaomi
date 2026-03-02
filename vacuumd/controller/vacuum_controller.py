@@ -1,7 +1,7 @@
 import logging
 import time
 import socket
-from typing import Optional, Dict
+from typing import Dict, List, Optional
 from miio import RoborockVacuum
 from tenacity import (
     retry,
@@ -23,19 +23,26 @@ class VacuumController:
     """
 
     def __init__(
-        self, ip: str, token: str, name: str = "Vacuum", device_id: str = None
+        self,
+        ip: str,
+        token: str,
+        name: str = "Vacuum",
+        device_id: str = None,
+        room_mapping: Optional[Dict[int, str]] = None,
     ):
         self.ip = ip
         self.token = token
         self.name = name
         self.device_id = device_id
+        self.room_mapping = room_mapping or {}
         self.device = RoborockVacuum(ip, token)
         # 正確設定 timeout 的方式
         self.device.timeout = 5
         # 狀態快取，避免過於頻繁的 UDP 請求導致機器人無響應 (TTL 來自設定檔)
         self._status_cache = TTLCache(maxsize=1, ttl=settings.server.cache_ttl)
-
         self._cache_key = f"{ip}_status"
+        self._unreachable_cache_until = 0.0
+        self._unreachable_state = None
 
     def _is_port_open(self) -> bool:
         """快速檢測機器人 UDP 54321 埠口是否有反應 (不進行協定握手)"""
@@ -54,6 +61,10 @@ class VacuumController:
 
     def status(self) -> VacuumState:
         """獲取機器人目前狀態 (包含連通性偵測、主動喚醒與快取檢查)。"""
+        now = time.monotonic()
+        if self._unreachable_state and now < self._unreachable_cache_until:
+            return self._unreachable_state
+
         if self._cache_key in self._status_cache:
             return self._status_cache[self._cache_key]
 
@@ -63,7 +74,7 @@ class VacuumController:
         try:
             raw_status = self._safe_call("status")
             state = VacuumState.from_miio(raw_status, reachable=True)
-        except Exception as e:
+        except Exception:
             # 發生錯誤時，嘗試「強力喚醒」機制
             logger.warning(f"通訊異常，嘗試強力喚醒機器人 {self.name} ({self.ip})...")
 
@@ -77,7 +88,7 @@ class VacuumController:
                     time.sleep(0.5)  # 給機器人一點反應時間
                     raw_status = self.device.status()
                     state = VacuumState.from_miio(raw_status, reachable=True)
-                except:
+                except Exception:
                     # 如果埠口開著但通訊依然失敗，標記為 Busy (機器人正在嘗試重連雲端)
                     state = VacuumState.from_miio(None, reachable=True)
             else:
@@ -86,9 +97,12 @@ class VacuumController:
 
             if not state.is_reachable:
                 # 針對 Unreachable 狀態，我們縮短快取時間，增加之後嘗試喚醒的頻率
-                self._status_cache.set(self._cache_key, state, ttl=2)
+                self._unreachable_state = state
+                self._unreachable_cache_until = time.monotonic() + 2
                 return state
 
+        self._unreachable_state = None
+        self._unreachable_cache_until = 0.0
         self._status_cache[self._cache_key] = state
         return state
 
@@ -115,6 +129,26 @@ class VacuumController:
     def get_maps(self):
         """獲取雲端儲存的地圖列表資訊。"""
         return self._safe_call("get_maps")
+
+    def get_room_mapping(self) -> Dict[int, str]:
+        """回傳此設備的房間映射設定。"""
+        return self.room_mapping
+
+    def segment_clean(self, segments: List[int]):
+        """執行分區清掃，依 python-miio 版本嘗試不同方法名稱。"""
+        return self._safe_call_any(["segment_clean", "app_segment_clean"], segments)
+
+    def zoned_clean(self, zones: List[List[int]]):
+        """執行區域清掃，依 python-miio 版本嘗試不同方法名稱。"""
+        return self._safe_call_any(["zoned_clean", "app_zoned_clean"], zones)
+
+    def _safe_call_any(self, method_names: List[str], *args, **kwargs):
+        for method_name in method_names:
+            if hasattr(self.device, method_name):
+                return self._safe_call(method_name, *args, **kwargs)
+        raise AttributeError(
+            f"Device does not support requested operation. Tried: {method_names}"
+        )
 
     @retry(
         stop=stop_after_attempt(3),

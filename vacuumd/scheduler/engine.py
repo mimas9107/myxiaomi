@@ -1,8 +1,8 @@
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.cron import CronTrigger
 from vacuumd.controller.manager import manager
-from vacuumd.config.settings import settings
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +14,7 @@ class AutomationEngine:
     """
 
     def __init__(self):
-        self.scheduler = BackgroundScheduler()
+        self.scheduler = BackgroundScheduler(timezone=timezone.utc)
         # 記錄設備最後運行的資訊，用於判斷任務重疊
         # 儲存格式: device_id -> {start_ts: 開始時間戳, est_end_ts: 預估結束時間戳}
         self.last_run_info = {}
@@ -31,16 +31,16 @@ class AutomationEngine:
         新增一個定時清掃任務。
         :param task_id: 任務唯一識別碼
         :param device_id: 機器人 ID
-        :param cron: Cron 格式時間設定 (目前僅支援簡單的 分 時 格式)
+        :param cron: Cron 格式時間設定 (標準 5 欄: 分 時 日 月 週)
         :param est_duration: 預估清掃時長 (分鐘)
         """
+        trigger = CronTrigger.from_crontab(cron, timezone=timezone.utc)
         self.scheduler.add_job(
             self._smart_clean_job,
-            "cron",
+            trigger,
             id=task_id,
             args=[device_id, est_duration],
-            hour=cron.split()[1],
-            minute=cron.split()[0],
+            replace_existing=True,
         )
         logger.info(f"已排程任務 {task_id} 給設備 {device_id}，時間設定：{cron}")
 

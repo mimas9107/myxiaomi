@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+from typing import Any, Dict
 from vacuumd.controller.manager import manager
 
 router = APIRouter()
@@ -8,7 +9,7 @@ router = APIRouter()
 class CommandRequest(BaseModel):
     device_id: str
     command: str
-    params: dict = {}
+    params: Dict[str, Any] = Field(default_factory=dict)
 
 
 @router.post("/execute")

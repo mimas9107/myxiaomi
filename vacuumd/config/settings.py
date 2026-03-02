@@ -1,7 +1,7 @@
 import os
 import yaml
 from pathlib import Path
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import List, Dict, Optional
 
 
@@ -12,8 +12,9 @@ class DeviceConfig(BaseModel):
     name: str
     ip: str
     token: str
+    token_env: Optional[str] = None
     # 房間映射設定，key 為機器人內部的 Segment ID，value 為易讀的房間名稱
-    room_mapping: Optional[Dict[int, str]] = {}
+    room_mapping: Dict[int, str] = Field(default_factory=dict)
 
 
 class ServerConfig(BaseModel):
@@ -25,11 +26,22 @@ class ServerConfig(BaseModel):
     retry_count: int = 3  # API 呼叫失敗重試次數
 
 
+class ScheduleConfig(BaseModel):
+    """排程任務配置。"""
+
+    task_id: str
+    device_id: str
+    cron: str  # 標準 5 欄 crontab: 分 時 日 月 週
+    est_duration: int = 40
+    enabled: bool = True
+
+
 class Settings(BaseModel):
     """全域配置結構。"""
 
     devices: List[DeviceConfig]
     server: ServerConfig
+    schedules: List[ScheduleConfig] = Field(default_factory=list)
 
 
 def load_settings() -> Settings:
@@ -47,6 +59,23 @@ def load_settings() -> Settings:
 
     with open(config_path, "r", encoding="utf-8") as f:
         data = yaml.safe_load(f)
+        devices = data.get("devices", [])
+        for dev in devices:
+            raw_token = str(dev.get("token", "")).strip()
+            token_env = dev.get("token_env")
+
+            if not raw_token and token_env:
+                raw_token = os.getenv(token_env, "").strip()
+
+            if not raw_token:
+                dev_id = dev.get("id", "<unknown>")
+                raise ValueError(
+                    f"Device '{dev_id}' missing token. Set 'token' in config.yaml "
+                    "or provide 'token_env' with a valid environment variable."
+                )
+
+            dev["token"] = raw_token
+
         return Settings(**data)
 
 

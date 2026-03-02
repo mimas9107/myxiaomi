@@ -19,6 +19,7 @@ class DeviceManager:
                 token=dev_cfg.token,
                 name=dev_cfg.name,
                 device_id=dev_cfg.id,
+                room_mapping=dev_cfg.room_mapping,
             )
             self.devices[dev_cfg.id] = controller
             print(f"Initialized device: {dev_cfg.name} ({dev_cfg.id})")

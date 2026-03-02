@@ -5,12 +5,19 @@ build/
 dist/
 wheels/
 *.egg-info
+.pytest_cache/
+.mypy_cache/
+*.log
 
 .ruff_cache/
 private_test/
 
 # Virtual environments
-.venv
+.venv/
+.uv-cache/
 
 # Secrets
 output-token.txt
+.env
+.env.*
+!.env.example
