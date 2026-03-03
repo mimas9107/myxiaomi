@@ -74,6 +74,34 @@ devices:
 - **取得房間列表**: `GET /v1/devices/{id}/rooms`
 - **執行分區清掃**: 支援 `segment_clean` 與 `zoned_clean` 指令，並具備自動向下相容的 API 調用邏輯。
 
+### Zone ID 探索工具
+由於 S5 舊韌體限制，無法自動讀取分區 ID。專案提供 `zone_discovery.py` 工具協助建立對應關係。
+
+#### 使用方式
+1. **偵測當前分區**：
+   在米家 APP 啟動分區清掃的同時，執行：
+   ```bash
+   uv run python zone_discovery.py
+   ```
+
+2. **測試特定 Zone ID**：
+   等待機器人回充後，執行：
+   ```bash
+   uv run python zone_discovery.py --test 16
+   ```
+   觀察機器人前往的區域，重複測試所有 ID (1-21) 以建立對應表。
+
+#### 已驗證之 Zone ID 對應 (Roborock S5)
+| Zone ID | 區域名稱 |
+| :--- | :--- |
+| 8 | 全屋 |
+| 16 | 主臥室 |
+| 17 | 客廳1 |
+| 18 | 次臥室 |
+| 19 | 客廳2 |
+| 20 | 書房 |
+| 21 | 廚房 |
+
 ### 命令列工具使用
 uv run python vacuumd/cli/main.py status
 
@@ -88,16 +116,28 @@ uv run python vacuumd/cli/main.py status
 
 ```yaml
 schedules:
+  # 全屋清掃範例
   - task_id: "daily_1300"
     device_id: "robot_s5"
     cron: "0 13 * * *"
     est_duration: 40
     enabled: true
-  - task_id: "weekday_0930"
+
+  # 分區清掃範例（僅清掃指定 zone）
+  - task_id: "kitchen_night"
     device_id: "robot_s5"
-    cron: "30 9 * * 1-5"
-    est_duration: 30
-    enabled: true
+    cron: "0 21 * * *"
+    est_duration: 15
+    enabled: false
+    zones: [21]  # 只掃廚房
+
+  # 多區域清掃範例
+  - task_id: "bedroom_morning"
+    device_id: "robot_s5"
+    cron: "30 8 * * 1-5"
+    est_duration: 20
+    enabled: false
+    zones: [16, 18]  # 清掃主臥室 + 次臥室
 ```
 
 欄位說明：
@@ -106,3 +146,4 @@ schedules:
 - `cron`: `分 時 日 月 週`
 - `est_duration`: 預估清掃分鐘數（用於衝突判斷）
 - `enabled`: 是否啟用該任務
+- `zones`: 分區 ID 列表（可參考上表），若省略或為空則執行全屋清掃

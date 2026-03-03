@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime, timezone
+from typing import List, Optional
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from vacuumd.controller.manager import manager
@@ -25,7 +26,12 @@ class AutomationEngine:
         logger.info("自動化引擎已啟動。")
 
     def add_cleaning_job(
-        self, task_id: str, device_id: str, cron: str, est_duration: int
+        self,
+        task_id: str,
+        device_id: str,
+        cron: str,
+        est_duration: int,
+        zones: Optional[List[int]] = None,
     ):
         """
         新增一個定時清掃任務。
@@ -33,28 +39,40 @@ class AutomationEngine:
         :param device_id: 機器人 ID
         :param cron: Cron 格式時間設定 (標準 5 欄: 分 時 日 月 週)
         :param est_duration: 預估清掃時長 (分鐘)
+        :param zones: 分區 ID 列表，若為空或 None 則執行全屋清掃
         """
         trigger = CronTrigger.from_crontab(cron, timezone=timezone.utc)
         self.scheduler.add_job(
             self._smart_clean_job,
             trigger,
             id=task_id,
-            args=[device_id, est_duration],
+            args=[device_id, est_duration, zones or []],
             replace_existing=True,
         )
-        logger.info(f"已排程任務 {task_id} 給設備 {device_id}，時間設定：{cron}")
 
-    def _smart_clean_job(self, device_id: str, est_duration: int):
+        zone_info = f" (分區: {zones})" if zones else " (全屋)"
+        logger.info(
+            f"已排程任務 {task_id} 給設備 {device_id}，時間設定：{cron}{zone_info}"
+        )
+
+    def _smart_clean_job(
+        self, device_id: str, est_duration: int, zones: Optional[List[int]] = None
+    ):
         """
         核心任務執行邏輯，包含智慧衝突檢測：
         1. 檢查設備目前狀態 (是否已在清掃或回充中？)
         2. 檢查電池電量 (低於 20% 則不啟動)
         3. 檢查任務重疊 (判斷目前時間是否落在前次任務的預估清掃時間內)
+        4. 若有指定 zones，則執行分區清掃；否則執行全屋清掃
         """
+        zones = zones or []
         now = datetime.now(timezone.utc)
         now_ts = now.timestamp()
 
-        logger.info(f"嘗試執行排程任務：{device_id} (時間: {now.isoformat()})")
+        zone_info = f"分區 {zones}" if zones else "全屋"
+        logger.info(
+            f"嘗執行排程任務：{device_id} - {zone_info} (時間: {now.isoformat()})"
+        )
 
         try:
             controller = manager.get_device(device_id)
@@ -84,8 +102,14 @@ class AutomationEngine:
                     )
                     return
 
-            # 4. 執行啟動指令
-            controller.start()
+            # 4. 執行啟動指令 (分區 or 全屋)
+            if zones:
+                # 分區清掃模式
+                logger.info(f"執行分區清掃：{zones}")
+                controller.segment_clean(zones)
+            else:
+                # 全屋清掃模式
+                controller.start()
 
             # 5. 更新預估運行時間記錄
             est_end_ts = now_ts + (est_duration * 60)

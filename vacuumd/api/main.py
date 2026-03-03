@@ -39,6 +39,7 @@ async def startup_event():
                 device_id=schedule.device_id,
                 cron=schedule.cron,
                 est_duration=schedule.est_duration,
+                zones=schedule.zones,
             )
             loaded += 1
         except Exception as exc:

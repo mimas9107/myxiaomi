@@ -34,6 +34,11 @@ class ScheduleConfig(BaseModel):
     cron: str  # 標準 5 欄 crontab: 分 時 日 月 週
     est_duration: int = 40
     enabled: bool = True
+    # 分區清掃參數：若指定此參數，則只清掃指定的分區（而非全屋）
+    # 可使用 zone 名稱（需配合 device 的 room_mapping）或直接指定 zone ID
+    zones: Optional[List[int]] = Field(
+        default_factory=list, description="分區 ID 列表，若為空則執行全屋清掃"
+    )
 
 
 class Settings(BaseModel):

@@ -3,10 +3,16 @@ devices:
     name: "Living Room Vacuum"
     ip: "192.168.1.9"
     token_env: "VACUUM_ROBOT_S5_TOKEN"
+    # zone_mapping: key 為 zone ID (整數), value 為易讀名稱
+    # 注意: S5 韌體可能不支援自動讀取 zone ID，需透過觀察或實驗取得
     room_mapping:
-      16: "Living Room"
-      17: "Kitchen"
-      18: "Bedroom"
+      8: "全屋"
+      16: "主臥室"
+      17: "客廳1"
+      18: "次臥室"
+      19: "客廳2"
+      20: "書房"
+      21: "廚房"
 
 server:
   host: "0.0.0.0"
@@ -15,13 +21,26 @@ server:
   retry_count: 3
 
 schedules:
+  # 全屋清掃範例
   - task_id: "daily_1300"
     device_id: "robot_s5"
     cron: "0 13 * * *"
     est_duration: 40
     enabled: true
-  - task_id: "weekday_0930"
+    # zones 為空或省略表示全屋清掃
+
+  # 分區清掃範例 (僅清掃指定 zone)
+  - task_id: "kitchen_evening"
     device_id: "robot_s5"
-    cron: "30 9 * * 1-5"
-    est_duration: 30
-    enabled: true
+    cron: "0 21 * * *"
+    est_duration: 15
+    enabled: false  # 先設為 false，待確認 zone ID 後啟用
+    zones: [21]  # 僅清掃廚房 (zone ID 21)
+
+  # 多區域清掃範例
+  - task_id: "bedroom_morning"
+    device_id: "robot_s5"
+    cron: "30 8 * * 1-5"
+    est_duration: 20
+    enabled: false
+    zones: [16, 18]  # 清掃主臥室 + 次臥室
