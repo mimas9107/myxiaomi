@@ -1,5 +1,16 @@
 # 更新日誌 (CHANGELOG)
 
+### [0.3.3] - 2026-03-03
+
+### 新增
+- 根據 `AGENTS.md` 規範補強開發者合約，明確「正確性優先」與「繁體中文」開發原則。
+- 補齊 `VacuumController` 中缺失的 `spot()` 定點清掃方法，完全對齊 `SPEC.md` 規格。
+- 新增 `fanspeed()` 方法並實作 SPEC 要求之安全範圍檢查 (60-102)。
+
+### 修復
+- 修復 `python-miio` 升級導致的匯入路徑錯誤 (`miio` -> `miio.integrations.vacuum`)。
+- 修正 `VacuumController` 初始化參數的型別提示與預設值錯誤 (LSP 修正)。
+
 ### [0.3.2] - 2026-03-02
 
 ### 新增

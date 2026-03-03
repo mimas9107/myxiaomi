@@ -2,7 +2,7 @@ import logging
 import time
 import socket
 from typing import Dict, List, Optional
-from miio import RoborockVacuum
+from miio.integrations.vacuum import RoborockVacuum
 from tenacity import (
     retry,
     stop_after_attempt,
@@ -27,7 +27,7 @@ class VacuumController:
         ip: str,
         token: str,
         name: str = "Vacuum",
-        device_id: str = None,
+        device_id: Optional[str] = None,
         room_mapping: Optional[Dict[int, str]] = None,
     ):
         self.ip = ip
@@ -117,6 +117,18 @@ class VacuumController:
     def home(self):
         """停止清掃並返回充電座。"""
         return self._safe_call("home")
+
+    def spot(self):
+        """執行定點清掃 (Spot Cleaning)。"""
+        return self._safe_call("spot")
+
+    def fanspeed(self, speed: int):
+        """調整吸力強度 (符合 SPEC 規定範圍: 60-102)。"""
+        if speed < 60:
+            speed = 60
+        elif speed > 102:
+            speed = 102
+        return self.set_fan_speed(speed)
 
     def find(self):
         """讓機器人發出聲音以供尋找。"""
