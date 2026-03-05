@@ -19,9 +19,11 @@ server:
   port: 8000
   cache_ttl: 5
   retry_count: 3
+  # 使用者時區 (IANA 格式)。cron 排程時間依此時區解讀，內部邏輯統一 UTC。
+  timezone: "Asia/Taipei"
 
 schedules:
-  # 全屋清掃範例
+  # 全屋清掃範例 — 台北時間 13:00 (因 timezone 設為 Asia/Taipei)
   - task_id: "daily_1300"
     device_id: "robot_s5"
     cron: "0 13 * * *"
@@ -29,7 +31,7 @@ schedules:
     enabled: true
     # zones 為空或省略表示全屋清掃
 
-  # 分區清掃範例 (僅清掃指定 zone)
+  # 分區清掃範例 (僅清掃指定 zone) — 台北時間 21:00
   - task_id: "kitchen_evening"
     device_id: "robot_s5"
     cron: "0 21 * * *"
@@ -37,7 +39,7 @@ schedules:
     enabled: false  # 先設為 false，待確認 zone ID 後啟用
     zones: [21]  # 僅清掃廚房 (zone ID 21)
 
-  # 多區域清掃範例
+  # 多區域清掃範例 — 台北時間 08:30 (平日)
   - task_id: "bedroom_morning"
     device_id: "robot_s5"
     cron: "30 8 * * 1-5"

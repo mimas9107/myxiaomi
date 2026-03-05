@@ -1,5 +1,22 @@
 # 更新日誌 (CHANGELOG)
 
+### [0.3.4] - 2026-03-05
+
+### 新增
+- **使用者時區支援**：`config.yaml` 新增 `server.timezone` 設定（IANA 格式，如 `"Asia/Taipei"`），cron 排程時間依此時區解讀，內部邏輯統一使用 UTC。
+- **排程管理 REST API**：
+  - `GET /v1/schedules` — 列出所有排程任務及下次觸發時間（含 UTC 與使用者時區）。
+  - `POST /v1/schedules` — 動態新增排程任務（自動驗證 device_id 存在性）。
+  - `DELETE /v1/schedules/{task_id}` — 移除指定排程。
+- 排程引擎新增 `remove_cleaning_job()` 與 `list_jobs()` 方法，支援動態排程管理。
+- `Settings` 新增 `get_user_tz()` 便利函式，回傳 `ZoneInfo` 物件。
+
+### 優化
+- **全域日誌加入 UTC ISO8601 時間戳**：所有模組 logger 輸出自動帶 `%Y-%m-%dT%H:%M:%S` 格式 UTC 時間。
+- 排程引擎所有關鍵日誌同時印出 UTC 與使用者當地時間，方便除錯與監控。
+- `config.yaml` 排程備註標明時區依據，避免 cron 時間被誤讀為 UTC。
+- `ScheduledTask` 模型補齊 `zones` 欄位，與引擎實際功能對齊。
+
 ### [0.3.3] - 2026-03-04
 
 ### 新增

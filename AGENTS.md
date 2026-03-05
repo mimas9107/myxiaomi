@@ -42,3 +42,9 @@
 - `scheduler/`: 時區感知的智慧排程引擎。
 - `view/`: 純本地資源的 Web Dashboard。
 - `cli/`: `vacuumctl` 命令列工具。
+
+## 5. 開發日誌依據 (路徑： ./develop_journal/<YYYY-MM-DD/>/子計畫[選項])
+- PLAN.md 一定要先讀的計畫.
+- TODO.md 計畫要執行的詳細項目排程.
+- NOTES.md 計畫執行時的大大小小技術要點可以記錄下來幫助你記憶.
+- (TEST_)REVIEW_TODO.md 最後項目做完(或測試做完)要審查的要點.

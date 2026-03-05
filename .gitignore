@@ -21,3 +21,6 @@ output-token.txt
 .env
 .env.*
 !.env.example
+
+#development journal
+develop_journal/

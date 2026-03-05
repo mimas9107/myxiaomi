@@ -1,6 +1,7 @@
 import os
 import yaml
 from pathlib import Path
+from zoneinfo import ZoneInfo
 from pydantic import BaseModel, Field
 from typing import List, Dict, Optional
 
@@ -24,6 +25,9 @@ class ServerConfig(BaseModel):
     port: int = 8000
     cache_ttl: int = 5  # 狀態快取時間 (秒)
     retry_count: int = 3  # API 呼叫失敗重試次數
+    # 使用者時區 (IANA 格式，如 "Asia/Taipei")。
+    # cron 排程時間會依此時區解讀；內部邏輯仍統一使用 UTC。
+    timezone: str = "UTC"
 
 
 class ScheduleConfig(BaseModel):
@@ -31,7 +35,7 @@ class ScheduleConfig(BaseModel):
 
     task_id: str
     device_id: str
-    cron: str  # 標準 5 欄 crontab: 分 時 日 月 週
+    cron: str  # 標準 5 欄 crontab: 分 時 日 月 週 (依 server.timezone 設定解讀)
     est_duration: int = 40
     enabled: bool = True
     # 分區清掃參數：若指定此參數，則只清掃指定的分區（而非全屋）
@@ -86,3 +90,8 @@ def load_settings() -> Settings:
 
 # 初始化全域 Singleton 設定實例，方便在專案各處引用
 settings = load_settings()
+
+
+def get_user_tz() -> ZoneInfo:
+    """回傳使用者設定的時區 (ZoneInfo 物件)。"""
+    return ZoneInfo(settings.server.timezone)
