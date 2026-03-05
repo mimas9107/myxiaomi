@@ -61,7 +61,7 @@ async def create_schedule(req: ScheduleCreateRequest):
             zones=req.zones,
         )
 
-        # 4. 更新設定物件與持久化到檔案
+        # 4. 更新設定物件並儲存到檔案
         new_schedule = ScheduleConfig(
             task_id=req.task_id,
             device_id=req.device_id,
@@ -79,7 +79,54 @@ async def create_schedule(req: ScheduleCreateRequest):
 
     return {
         "status": "success",
-        "message": f"排程 '{req.task_id}' 已建立並持久化 (cron: {req.cron}, timezone: {settings.server.timezone})",
+        "message": f"排程 '{req.task_id}' 已建立並成功儲存 (cron: {req.cron}, timezone: {settings.server.timezone})",
+    }
+
+
+@router.put("/{task_id}")
+async def update_schedule(task_id: str, req: ScheduleCreateRequest):
+    """更新現有的排程任務。"""
+    # 1. 檢查 task_id 是否存在
+    old_schedule = next((s for s in settings.schedules if s.task_id == task_id), None)
+    if not old_schedule:
+        raise HTTPException(status_code=404, detail=f"找不到排程 ID '{task_id}'")
+
+    # 2. 檢查 device_id 是否存在
+    from vacuumd.controller.manager import manager
+    try:
+        manager.get_device(req.device_id)
+    except KeyError:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Device '{req.device_id}' not found",
+        )
+
+    try:
+        # 3. 更新引擎 (replace_existing=True 會處理更新)
+        automation.add_cleaning_job(
+            task_id=task_id,  # 即使 req.task_id 不同，我們也以 URL 為主
+            device_id=req.device_id,
+            cron=req.cron,
+            est_duration=req.est_duration,
+            zones=req.zones,
+        )
+
+        # 4. 更新設定物件
+        # 如果使用者想改 task_id，建議先刪除再新增，這裡我們鎖定 URL 的 task_id
+        old_schedule.device_id = req.device_id
+        old_schedule.cron = req.cron
+        old_schedule.est_duration = req.est_duration
+        old_schedule.zones = req.zones or []
+        
+        # 5. 儲存到檔案
+        save_schedules(settings.schedules)
+
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"排程更新失敗: {e}")
+
+    return {
+        "status": "success",
+        "message": f"排程 '{task_id}' 已更新並成功儲存",
     }
 
 

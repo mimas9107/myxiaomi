@@ -101,7 +101,11 @@ def save_schedules(schedules: List[ScheduleConfig]):
     """
     將排程設定寫回 config.yaml。
     採用局部更新策略：保留 devices 與 server 區段的原樣（含註解），僅替換 schedules 區段。
+    使用原子性寫入策略 (寫入暫存檔後更名) 以確保安全。
     """
+    import os
+    import time
+
     config_path = Path(__file__).parent / "config.yaml"
     if not config_path.exists():
         config_path = Path("config.yaml")
@@ -137,5 +141,21 @@ def save_schedules(schedules: List[ScheduleConfig]):
             final_content += "\n"
         final_content += "\n" + new_yaml_str
 
-    with open(config_path, "w", encoding="utf-8") as f:
-        f.write(final_content)
+    # 原子性寫入：先寫入暫存檔，sync 後再更名
+    tmp_path = config_path.with_suffix(".tmp")
+    try:
+        with open(tmp_path, "w", encoding="utf-8") as f:
+            f.write(final_content)
+            f.flush()
+            os.fsync(f.fileno())  # 強制寫入磁碟實體層
+        
+        # 更名 (在 Linux 上為原子性操作)
+        os.replace(tmp_path, config_path)
+        
+        # 給予一點安全容許時間讓作業系統或後端處理程序穩定 (回應使用者需求)
+        time.sleep(0.5)
+        
+    except Exception as e:
+        if tmp_path.exists():
+            os.remove(tmp_path)
+        raise e

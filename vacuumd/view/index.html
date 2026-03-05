@@ -109,7 +109,7 @@
         </section>
 
         <!-- 排程管理 -->
-        <section class="max-w-6xl mx-auto">
+        <section class="mb-12">
             <div class="flex flex-col md:flex-row justify-between items-center mb-6">
                 <h2 class="text-xl font-bold flex items-center text-slate-200 mb-4 md:mb-0">
                     <svg class="w-5 h-5 mr-2 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -118,7 +118,7 @@
                     </svg>
                     自動化排程管理
                 </h2>
-                <button @click="isAdding = true"
+                <button @click="isAdding = true; isEditing = false; resetNewJob()"
                     class="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl font-bold transition flex items-center shadow-lg shadow-indigo-900/20 active:scale-95">
                     <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -154,12 +154,13 @@
                 class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md">
                 <div @click.away="isAdding = false"
                     class="bg-slate-800 w-full max-w-lg rounded-2xl border border-slate-700 shadow-2xl p-8 animate-in fade-in zoom-in duration-300">
-                    <h3 class="text-2xl font-bold mb-6 text-indigo-400">建立新排程</h3>
+                    <h3 class="text-2xl font-bold mb-6 text-indigo-400" x-text="isEditing ? '修改排程' : '建立新排程'">建立新排程</h3>
                     <div class="space-y-4">
                         <div>
                             <label class="block text-sm font-medium text-slate-400 mb-1.5">任務名稱 (Task ID)</label>
-                            <input type="text" x-model="newJob.task_id" placeholder="例如: morning_cleaning"
-                                class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-sm transition">
+                            <input type="text" x-model="newJob.task_id" :disabled="isEditing"
+                                placeholder="例如: morning_cleaning"
+                                class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-sm transition disabled:opacity-50">
                         </div>
                         <div class="grid grid-cols-2 gap-4">
                             <div>
@@ -205,7 +206,8 @@
                         <button @click="isAdding = false"
                             class="px-6 py-3 rounded-xl text-slate-400 hover:bg-slate-700 transition font-bold text-sm">取消</button>
                         <button @click="saveNewSchedule()"
-                            class="bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-3 rounded-xl font-bold transition shadow-lg shadow-indigo-900/30 active:scale-95 text-sm">儲存排程</button>
+                            class="bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-3 rounded-xl font-bold transition shadow-lg shadow-indigo-900/30 active:scale-95 text-sm"
+                            x-text="isEditing ? '確認修改' : '儲存排程'"></button>
                     </div>
                 </div>
             </div>
@@ -219,8 +221,8 @@
                                 class="bg-slate-900/50 text-slate-400 text-xs font-bold uppercase tracking-widest border-b border-slate-700">
                                 <th class="px-6 py-5">任務 ID</th>
                                 <th class="px-6 py-5">Cron 設定</th>
+                                <th class="px-6 py-5">清掃區域</th>
                                 <th class="px-6 py-5">下次執行 (當地)</th>
-                                <th class="px-6 py-5">下次執行 (UTC)</th>
                                 <th class="px-6 py-5 text-center">操作</th>
                             </tr>
                         </thead>
@@ -234,21 +236,46 @@
                                     </td>
                                     <td class="px-6 py-5 font-mono text-indigo-400 font-medium"
                                         x-text="job.cron || '--'"></td>
-                                    <td class="px-6 py-5 text-slate-300 font-medium"
+                                    <td class="px-6 py-5">
+                                        <div class="flex flex-wrap gap-1">
+                                            <template x-if="!job.zones || job.zones.length === 0">
+                                                <span
+                                                    class="px-2 py-0.5 rounded bg-slate-700 text-slate-400 text-[10px] font-bold">全屋</span>
+                                            </template>
+                                            <template x-for="zId in (job.zones || [])" :key="zId">
+                                                <span
+                                                    class="px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 text-[10px] font-bold border border-indigo-500/20"
+                                                    x-text="devices[0]?.room_mapping?.[zId] || zId"></span>
+                                            </template>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-5 text-slate-300 font-medium whitespace-nowrap"
                                         x-text="formatDate(job.next_run_local)"></td>
-                                    <td class="px-6 py-5 text-slate-500 text-xs font-mono"
-                                        x-text="formatDate(job.next_run_utc)"></td>
-                                    <td class="px-6 py-5 text-center">
-                                        <button @click="deleteSchedule(job.task_id)"
-                                            class="text-red-500 hover:bg-red-500/10 p-2.5 rounded-xl transition-all duration-200 active:scale-90"
-                                            title="刪除排程">
-                                            <svg class="w-5 h-5 opacity-70 group-hover:opacity-100" fill="none"
-                                                stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
-                                                </path>
-                                            </svg>
-                                        </button>
+                                    <td class="px-6 py-5">
+                                        <div class="flex items-center justify-center gap-2">
+                                            <button @click="editSchedule(job)"
+                                                class="text-indigo-400 hover:bg-indigo-500/10 p-2.5 rounded-xl transition-all duration-200 active:scale-90"
+                                                title="修改排程">
+                                                <svg class="w-5 h-5 opacity-70 group-hover:opacity-100" fill="none"
+                                                    stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2"
+                                                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z">
+                                                    </path>
+                                                </svg>
+                                            </button>
+                                            <button @click="deleteSchedule(job.task_id)"
+                                                class="text-red-500 hover:bg-red-500/10 p-2.5 rounded-xl transition-all duration-200 active:scale-90"
+                                                title="刪除排程">
+                                                <svg class="w-5 h-5 opacity-70 group-hover:opacity-100" fill="none"
+                                                    stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2"
+                                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
+                                                    </path>
+                                                </svg>
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             </template>
@@ -273,6 +300,7 @@
                 schedules: [],
                 serverTimezone: 'UTC',
                 isAdding: false,
+                isEditing: false,
                 newJob: {
                     task_id: '',
                     device_id: '',
@@ -346,8 +374,10 @@
                     }
 
                     try {
-                        const res = await fetch('/v1/schedules/', {
-                            method: 'POST',
+                        const url = this.isEditing ? `/v1/schedules/${this.newJob.task_id}` : '/v1/schedules/';
+                        const method = this.isEditing ? 'PUT' : 'POST';
+                        const res = await fetch(url, {
+                            method: method,
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify(this.newJob)
                         });
@@ -358,11 +388,23 @@
                             this.resetNewJob();
                             this.fetchSchedules();
                         } else {
-                            alert('儲存失敗：' + result.detail);
+                            alert('操作失敗：' + result.detail);
                         }
                     } catch (e) {
                         alert('與伺服器連線失敗');
                     }
+                },
+                editSchedule(job) {
+                    this.isAdding = true;
+                    this.isEditing = true;
+                    // 從後端回傳的 job 物件填充到 newJob
+                    this.newJob = {
+                        task_id: job.task_id,
+                        device_id: job.device_id,
+                        cron: job.cron,
+                        est_duration: job.est_duration || 40,
+                        zones: [...(job.zones || [])]
+                    };
                 },
                 async deleteSchedule(taskId) {
                     if (!confirm(`確定要刪除排程 "${taskId}" 嗎？`)) return;
@@ -399,11 +441,8 @@
                 formatDate(iso) {
                     if (!iso) return '--';
                     const d = new Date(iso);
-                    return d.toLocaleString('zh-TW', {
-                        hour12: false,
-                        year: 'numeric', month: '2-digit', day: '2-digit',
-                        hour: '2-digit', minute: '2-digit'
-                    });
+                    const pad = (n) => n.toString().padStart(2, '0');
+                    return `${d.getFullYear()}/${pad(d.getMonth() + 1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
                 },
                 translateState(state) {
                     if (!state) return '連線中...';

@@ -52,3 +52,24 @@ schedules:
   zones:
   - 17
   - 19
+- task_id: test3
+  device_id: robot_s5
+  cron: 30 17 * * *
+  est_duration: 40
+  enabled: true
+  zones:
+  - 20
+- task_id: test4
+  device_id: robot_s5
+  cron: 30 18 * * *
+  est_duration: 40
+  enabled: true
+  zones:
+  - 19
+- task_id: test5
+  device_id: robot_s5
+  cron: 30 19 * * *
+  est_duration: 40
+  enabled: true
+  zones:
+  - 18

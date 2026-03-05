@@ -91,10 +91,14 @@ class AutomationEngine:
     def list_jobs(self) -> List[Dict[str, Any]]:
         """
         列出目前所有排程任務及其下次觸發時間。
-        回傳的時間同時包含 UTC 與使用者時區格式。
+        回傳的時間同時包含 UTC 與使用者時區格式，並補充 cron 與分區資訊。
         """
         jobs = self.scheduler.get_jobs()
         result = []
+        
+        # 建立一個快速查詢字典，從 settings.schedules 中獲取中繼資料
+        config_map = {s.task_id: s for s in settings.schedules}
+        
         for job in jobs:
             next_run_utc = (
                 job.next_run_time.astimezone(timezone.utc) if job.next_run_time else None
@@ -104,9 +108,21 @@ class AutomationEngine:
                 if job.next_run_time
                 else None
             )
+            
+            # 獲取原始設定中的 cron 與 zones
+            cfg = config_map.get(job.id)
+            cron_str = cfg.cron if cfg else "--"
+            zones = cfg.zones if cfg else []
+            device_id = cfg.device_id if cfg else "unknown"
+            est_duration = cfg.est_duration if cfg else 40
+            
             result.append(
                 {
                     "task_id": job.id,
+                    "device_id": device_id,
+                    "cron": cron_str,
+                    "zones": zones,
+                    "est_duration": est_duration,
                     "next_run_utc": (
                         next_run_utc.isoformat() if next_run_utc else None
                     ),
