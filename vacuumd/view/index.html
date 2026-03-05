@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,14 +8,19 @@
     <script src="/static/js/tailwind.min.js"></script>
     <script defer src="/static/js/alpine.min.js"></script>
     <style>
-        [x-cloak] { display: none !important; }
+        [x-cloak] {
+            display: none !important;
+        }
     </style>
 </head>
+
 <body class="bg-slate-900 text-white font-sans min-h-screen">
     <div class="container mx-auto px-4 py-8" x-data="vacuumApp()">
-        <header class="mb-8 flex flex-col md:flex-row justify-between items-center bg-slate-800/50 p-6 rounded-2xl border border-slate-700 shadow-2xl">
+        <header
+            class="mb-8 flex flex-col md:flex-row justify-between items-center bg-slate-800/50 p-6 rounded-2xl border border-slate-700 shadow-2xl">
             <div class="mb-4 md:mb-0 text-center md:text-left">
-                <h1 class="text-3xl font-bold bg-gradient-to-r from-sky-400 to-blue-500 bg-clip-text text-transparent">Vacuumd 控制中心</h1>
+                <h1 class="text-3xl font-bold bg-gradient-to-r from-sky-400 to-blue-500 bg-clip-text text-transparent">
+                    Vacuumd 控制中心</h1>
                 <p class="text-slate-400 text-sm mt-1">智慧清掃與排程管理系統</p>
             </div>
             <div class="flex items-center bg-slate-900/50 px-4 py-2 rounded-full border border-slate-700">
@@ -26,26 +32,38 @@
         <!-- 裝置卡片 -->
         <section class="mb-12">
             <h2 class="text-xl font-bold mb-6 flex items-center text-slate-200">
-                <svg class="w-5 h-5 mr-2 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"></path></svg>
+                <svg class="w-5 h-5 mr-2 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z">
+                    </path>
+                </svg>
                 裝置列表
             </h2>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <template x-for="device in devices" :key="device.id">
-                    <div class="bg-slate-800/80 backdrop-blur-sm rounded-2xl p-6 shadow-xl border border-slate-700 hover:border-sky-500/50 transition duration-300 group">
+                    <div
+                        class="bg-slate-800/80 backdrop-blur-sm rounded-2xl p-6 shadow-xl border border-slate-700 hover:border-sky-500/50 transition duration-300 group">
                         <div class="flex justify-between items-start mb-6">
                             <div>
-                                <h3 class="text-xl font-bold group-hover:text-sky-400 transition" x-text="device.name"></h3>
+                                <h3 class="text-xl font-bold group-hover:text-sky-400 transition" x-text="device.name">
+                                </h3>
                                 <p class="text-xs font-mono text-slate-500 mt-1" x-text="device.ip"></p>
                             </div>
-                            <span class="px-3 py-1 rounded-full text-xs font-bold shadow-sm" 
-                                  :class="getStatusColor(device.status?.state)"
-                                  x-text="translateState(device.status?.state)"></span>
+                            <span class="px-3 py-1 rounded-full text-xs font-bold shadow-sm"
+                                :class="getStatusColor(device.status?.state)"
+                                x-text="translateState(device.status?.state)"></span>
                         </div>
 
                         <!-- 連線狀態提示 -->
                         <template x-if="device.status && !device.status.is_reachable">
-                            <div class="mb-4 p-3 bg-red-900/20 border border-red-500/30 rounded-xl text-red-400 text-xs flex items-center">
-                                <svg class="w-4 h-4 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                            <div
+                                class="mb-4 p-3 bg-red-900/20 border border-red-500/30 rounded-xl text-red-400 text-xs flex items-center">
+                                <svg class="w-4 h-4 mr-2 flex-shrink-0" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z">
+                                    </path>
+                                </svg>
                                 <span>區域網路連線中斷／裝置離線</span>
                             </div>
                         </template>
@@ -55,32 +73,35 @@
                             <div class="flex justify-between items-center">
                                 <span class="text-slate-400 text-sm">電池電量</span>
                                 <div class="flex items-center">
-                                    <span class="mr-3 font-mono text-sm font-medium" x-text="(device.status?.battery || 0) + '%'"></span>
+                                    <span class="mr-3 font-mono text-sm font-medium"
+                                        x-text="(device.status?.battery || 0) + '%'"></span>
                                     <div class="w-16 h-2.5 bg-slate-700 rounded-full overflow-hidden p-0.5">
-                                        <div class="h-full rounded-full transition-all duration-1000" 
-                                             :class="device.status?.battery < 20 ? 'bg-red-500' : 'bg-green-500'" 
-                                             :style="'width: ' + (device.status?.battery || 0) + '%'"></div>
+                                        <div class="h-full rounded-full transition-all duration-1000"
+                                            :class="device.status?.battery < 20 ? 'bg-red-500' : 'bg-green-500'"
+                                            :style="'width: ' + (device.status?.battery || 0) + '%'"></div>
                                     </div>
                                 </div>
                             </div>
                             <div class="flex justify-between border-t border-slate-700/30 pt-3">
                                 <span class="text-slate-400 text-sm">清掃面積</span>
-                                <span class="font-medium text-slate-200" x-text="(device.status?.cleaned_area || 0) + ' m²'"></span>
+                                <span class="font-medium text-slate-200"
+                                    x-text="(device.status?.cleaned_area || 0) + ' m²'"></span>
                             </div>
                             <div class="flex justify-between border-t border-slate-700/30 pt-3">
                                 <span class="text-slate-400 text-sm">清掃時間</span>
-                                <span class="font-medium text-slate-200" x-text="device.status?.cleaning_since || '--:--'"></span>
+                                <span class="font-medium text-slate-200"
+                                    x-text="device.status?.cleaning_since || '--:--'"></span>
                             </div>
                         </div>
 
                         <!-- 控制按鈕 -->
                         <div class="grid grid-cols-2 gap-3">
-                            <button @click="execute(device.id, 'start')" 
-                                    class="bg-sky-600 hover:bg-sky-500 active:scale-95 py-2.5 rounded-xl font-bold transition shadow-lg shadow-sky-900/20">開始清掃</button>
-                            <button @click="execute(device.id, 'pause')" 
-                                    class="bg-slate-700 hover:bg-slate-600 active:scale-95 py-2.5 rounded-xl font-bold transition">暫停</button>
-                            <button @click="execute(device.id, 'home')" 
-                                    class="col-span-2 bg-amber-600/90 hover:bg-amber-600 active:scale-95 py-2.5 rounded-xl font-bold transition mt-1 shadow-lg shadow-amber-900/20">返回充電座</button>
+                            <button @click="execute(device.id, 'start')"
+                                class="bg-sky-600 hover:bg-sky-500 active:scale-95 py-2.5 rounded-xl font-bold transition shadow-lg shadow-sky-900/20">開始清掃</button>
+                            <button @click="execute(device.id, 'pause')"
+                                class="bg-slate-700 hover:bg-slate-600 active:scale-95 py-2.5 rounded-xl font-bold transition">暫停</button>
+                            <button @click="execute(device.id, 'home')"
+                                class="col-span-2 bg-amber-600/90 hover:bg-amber-600 active:scale-95 py-2.5 rounded-xl font-bold transition mt-1 shadow-lg shadow-amber-900/20">返回充電座</button>
                         </div>
                     </div>
                 </template>
@@ -91,12 +112,18 @@
         <section class="max-w-6xl mx-auto">
             <div class="flex flex-col md:flex-row justify-between items-center mb-6">
                 <h2 class="text-xl font-bold flex items-center text-slate-200 mb-4 md:mb-0">
-                    <svg class="w-5 h-5 mr-2 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <svg class="w-5 h-5 mr-2 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
                     自動化排程管理
                 </h2>
-                <button @click="isAdding = true" 
-                        class="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl font-bold transition flex items-center shadow-lg shadow-indigo-900/20 active:scale-95">
-                    <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                <button @click="isAdding = true"
+                    class="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl font-bold transition flex items-center shadow-lg shadow-indigo-900/20 active:scale-95">
+                    <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                    </svg>
                     新增排程
                 </button>
             </div>
@@ -104,13 +131,17 @@
             <!-- 區域對照提示 -->
             <div class="mb-6 bg-indigo-900/10 border border-indigo-500/20 rounded-2xl p-5">
                 <h3 class="text-sm font-bold text-indigo-400 mb-3 flex items-center uppercase tracking-wider">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
                     分區 ID 對照參考 (Zone ID Mapping)
                 </h3>
                 <div class="flex flex-wrap gap-2">
                     <template x-for="device in devices" :key="'mapping-'+device.id">
                         <template x-for="(name, id) in device.room_mapping" :key="device.id+'-'+id">
-                            <span class="bg-slate-800 border border-slate-700 text-slate-300 px-3 py-1.5 rounded-lg text-xs font-mono shadow-sm">
+                            <span
+                                class="bg-slate-800 border border-slate-700 text-slate-300 px-3 py-1.5 rounded-lg text-xs font-mono shadow-sm">
                                 <span class="text-indigo-400 font-bold" x-text="id"></span>: <span x-text="name"></span>
                             </span>
                         </template>
@@ -119,19 +150,22 @@
             </div>
 
             <!-- 新增排程表單 (Modal-like) -->
-            <div x-show="isAdding" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md">
-                <div @click.away="isAdding = false" class="bg-slate-800 w-full max-w-lg rounded-2xl border border-slate-700 shadow-2xl p-8 animate-in fade-in zoom-in duration-300">
+            <div x-show="isAdding" x-cloak
+                class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md">
+                <div @click.away="isAdding = false"
+                    class="bg-slate-800 w-full max-w-lg rounded-2xl border border-slate-700 shadow-2xl p-8 animate-in fade-in zoom-in duration-300">
                     <h3 class="text-2xl font-bold mb-6 text-indigo-400">建立新排程</h3>
                     <div class="space-y-4">
                         <div>
                             <label class="block text-sm font-medium text-slate-400 mb-1.5">任務名稱 (Task ID)</label>
-                            <input type="text" x-model="newJob.task_id" placeholder="例如: morning_cleaning" 
-                                   class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-sm transition">
+                            <input type="text" x-model="newJob.task_id" placeholder="例如: morning_cleaning"
+                                class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-sm transition">
                         </div>
                         <div class="grid grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-sm font-medium text-slate-400 mb-1.5">裝置 (Device)</label>
-                                <select x-model="newJob.device_id" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                                <select x-model="newJob.device_id"
+                                    class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
                                     <template x-for="device in devices" :key="device.id">
                                         <option :value="device.id" x-text="device.name"></option>
                                     </template>
@@ -139,24 +173,28 @@
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-slate-400 mb-1.5">掃除時長 (分鐘)</label>
-                                <input type="number" x-model="newJob.est_duration" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                                <input type="number" x-model="newJob.est_duration"
+                                    class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
                             </div>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-slate-400 mb-1.5">Cron 表達式 (分 時 日 月 週)</label>
-                            <input type="text" x-model="newJob.cron" placeholder="0 13 * * *" 
-                                   class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono transition">
-                            <p class="text-[10px] text-slate-500 mt-2 leading-relaxed">標準 5 欄格式。排程時間將依據伺服器設定的時區 (<span x-text="serverTimezone"></span>) 執行。</p>
+                            <input type="text" x-model="newJob.cron" placeholder="0 13 * * *"
+                                class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono transition">
+                            <p class="text-[10px] text-slate-500 mt-2 leading-relaxed">標準 5 欄格式。排程時間將依據伺服器設定的時區 (<span
+                                    x-text="serverTimezone"></span>) 執行。</p>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-slate-400 mb-2.5">選擇分區 (Zones) - 可複選</label>
                             <div class="flex flex-wrap gap-2 max-h-32 overflow-y-auto p-1">
-                                <template x-for="device in [devices.find(d => d.id === newJob.device_id)]" :key="device?.id">
-                                    <template x-for="(name, id) in (device?.room_mapping || {})" :key="id">
-                                        <button @click="toggleZone(id)" 
-                                                class="px-3 py-2 rounded-lg text-xs border transition-all duration-200"
-                                                :class="newJob.zones.includes(parseInt(id)) ? 'bg-indigo-600 border-indigo-500 text-white font-bold' : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-slate-500'"
-                                                x-text="id + ': ' + name"></button>
+                                <template x-if="newJob.device_id && devices.find(d => d.id === newJob.device_id)">
+                                    <template
+                                        x-for="(name, id) in (devices.find(d => d.id === newJob.device_id).room_mapping || {})"
+                                        :key="id">
+                                        <button @click="toggleZone(id)"
+                                            class="px-3 py-2 rounded-lg text-xs border transition-all duration-200"
+                                            :class="newJob.zones.includes(parseInt(id)) ? 'bg-indigo-600 border-indigo-500 text-white font-bold' : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-slate-500'"
+                                            x-text="id + ': ' + name"></button>
                                     </template>
                                 </template>
                             </div>
@@ -164,9 +202,10 @@
                         </div>
                     </div>
                     <div class="flex justify-end gap-3 mt-10">
-                        <button @click="isAdding = false" class="px-6 py-3 rounded-xl text-slate-400 hover:bg-slate-700 transition font-bold text-sm">取消</button>
-                        <button @click="saveNewSchedule()" 
-                                class="bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-3 rounded-xl font-bold transition shadow-lg shadow-indigo-900/30 active:scale-95 text-sm">儲存排程</button>
+                        <button @click="isAdding = false"
+                            class="px-6 py-3 rounded-xl text-slate-400 hover:bg-slate-700 transition font-bold text-sm">取消</button>
+                        <button @click="saveNewSchedule()"
+                            class="bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-3 rounded-xl font-bold transition shadow-lg shadow-indigo-900/30 active:scale-95 text-sm">儲存排程</button>
                     </div>
                 </div>
             </div>
@@ -176,7 +215,8 @@
                 <div class="overflow-x-auto">
                     <table class="w-full text-left">
                         <thead>
-                            <tr class="bg-slate-900/50 text-slate-400 text-xs font-bold uppercase tracking-widest border-b border-slate-700">
+                            <tr
+                                class="bg-slate-900/50 text-slate-400 text-xs font-bold uppercase tracking-widest border-b border-slate-700">
                                 <th class="px-6 py-5">任務 ID</th>
                                 <th class="px-6 py-5">Cron 設定</th>
                                 <th class="px-6 py-5">下次執行 (當地)</th>
@@ -189,16 +229,25 @@
                                 <tr class="hover:bg-slate-700/30 transition-colors group">
                                     <td class="px-6 py-5">
                                         <div class="font-bold text-slate-200" x-text="job.task_id"></div>
-                                        <div class="text-[10px] text-slate-500 mt-1 uppercase tracking-tighter" x-text="job.timezone"></div>
+                                        <div class="text-[10px] text-slate-500 mt-1 uppercase tracking-tighter"
+                                            x-text="job.timezone"></div>
                                     </td>
-                                    <td class="px-6 py-5 font-mono text-indigo-400 font-medium" x-text="job.cron || '--'"></td>
-                                    <td class="px-6 py-5 text-slate-300 font-medium" x-text="formatDate(job.next_run_local)"></td>
-                                    <td class="px-6 py-5 text-slate-500 text-xs font-mono" x-text="formatDate(job.next_run_utc)"></td>
+                                    <td class="px-6 py-5 font-mono text-indigo-400 font-medium"
+                                        x-text="job.cron || '--'"></td>
+                                    <td class="px-6 py-5 text-slate-300 font-medium"
+                                        x-text="formatDate(job.next_run_local)"></td>
+                                    <td class="px-6 py-5 text-slate-500 text-xs font-mono"
+                                        x-text="formatDate(job.next_run_utc)"></td>
                                     <td class="px-6 py-5 text-center">
-                                        <button @click="deleteSchedule(job.task_id)" 
-                                                class="text-red-500 hover:bg-red-500/10 p-2.5 rounded-xl transition-all duration-200 active:scale-90"
-                                                title="刪除排程">
-                                            <svg class="w-5 h-5 opacity-70 group-hover:opacity-100" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                        <button @click="deleteSchedule(job.task_id)"
+                                            class="text-red-500 hover:bg-red-500/10 p-2.5 rounded-xl transition-all duration-200 active:scale-90"
+                                            title="刪除排程">
+                                            <svg class="w-5 h-5 opacity-70 group-hover:opacity-100" fill="none"
+                                                stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
+                                                </path>
+                                            </svg>
                                         </button>
                                     </td>
                                 </tr>
@@ -235,7 +284,7 @@
                     await this.fetchDevices();
                     if (this.devices.length > 0) this.newJob.device_id = this.devices[0].id;
                     await this.fetchSchedules();
-                    
+
                     // Initial status fetch
                     this.devices.forEach(d => this.fetchStatus(d.id));
                     // Poll status and schedules
@@ -350,7 +399,7 @@
                 formatDate(iso) {
                     if (!iso) return '--';
                     const d = new Date(iso);
-                    return d.toLocaleString('zh-TW', { 
+                    return d.toLocaleString('zh-TW', {
                         hour12: false,
                         year: 'numeric', month: '2-digit', day: '2-digit',
                         hour: '2-digit', minute: '2-digit'
@@ -379,4 +428,5 @@
         }
     </script>
 </body>
+
 </html>

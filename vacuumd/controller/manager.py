@@ -29,9 +29,14 @@ class DeviceManager:
             raise KeyError(f"Device with ID '{device_id}' not found")
         return self.devices[device_id]
 
-    def list_devices(self) -> List[Dict[str, str]]:
+    def list_devices(self) -> List[Dict]:
         return [
-            {"id": dev_id, "name": dev.name, "ip": dev.ip}
+            {
+                "id": dev_id,
+                "name": dev.name,
+                "ip": dev.ip,
+                "room_mapping": dev.room_mapping,
+            }
             for dev_id, dev in self.devices.items()
         ]
 
