@@ -95,3 +95,47 @@ settings = load_settings()
 def get_user_tz() -> ZoneInfo:
     """回傳使用者設定的時區 (ZoneInfo 物件)。"""
     return ZoneInfo(settings.server.timezone)
+
+
+def save_schedules(schedules: List[ScheduleConfig]):
+    """
+    將排程設定寫回 config.yaml。
+    採用局部更新策略：保留 devices 與 server 區段的原樣（含註解），僅替換 schedules 區段。
+    """
+    config_path = Path(__file__).parent / "config.yaml"
+    if not config_path.exists():
+        config_path = Path("config.yaml")
+
+    # 讀取原本的檔案內容
+    lines = []
+    if config_path.exists():
+        with open(config_path, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+
+    # 尋找 schedules: 開始的位置
+    schedules_start_idx = -1
+    for i, line in enumerate(lines):
+        if line.strip().startswith("schedules:"):
+            schedules_start_idx = i
+            break
+
+    # 準備新的 schedules 資料
+    new_data = [s.model_dump(exclude_none=True) for s in schedules]
+    # 這裡使用 yaml.dump 生成字串，縮排設為 2 
+    new_yaml_str = yaml.dump({"schedules": new_data}, allow_unicode=True, sort_keys=False, indent=2)
+
+    # 組合新內容
+    final_content = ""
+    if schedules_start_idx != -1:
+        # 保留 schedules: 之前的內容
+        final_content = "".join(lines[:schedules_start_idx])
+        final_content += new_yaml_str
+    else:
+        # 如果原本沒有 schedules 區塊，則直接附加
+        final_content = "".join(lines)
+        if final_content and not final_content.endswith("\n"):
+            final_content += "\n"
+        final_content += "\n" + new_yaml_str
+
+    with open(config_path, "w", encoding="utf-8") as f:
+        f.write(final_content)
