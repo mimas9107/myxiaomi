@@ -27,7 +27,7 @@
   - 使用者應透過 `start-server.sh` 啟動服務，確保自動載入 `.env`。
 
 ## 3. 執行協議 (Execution Protocol)
-- **環境一致性**：執行測試或啟動服務時，必須強制使用 `uv run` 並指向專案內的 `.venv` Python。
+- **環境一致性**：執行測試或啟動服務時，必須強制使用 `uv run`或是`~/.local/bin/uv` 並指向專案內的 `.venv` Python。
 - **修改前檢查**：
   - 使用 `grep -n` 定位精確行號。
   - 涉及核心控制邏輯時，先閱讀 `SPEC.md` 確認符合設計規格。
