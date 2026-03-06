@@ -2,10 +2,14 @@ import logging
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 from zoneinfo import ZoneInfo
+
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
+
+from vacuumd.config.settings import get_user_tz, settings
+from vacuumd.controller.history_store import history_store
 from vacuumd.controller.manager import manager
-from vacuumd.config.settings import settings, get_user_tz
+from vacuumd.model.cleaning_history import RunEvent, RunRecord
 
 logger = logging.getLogger(__name__)
 
@@ -21,15 +25,32 @@ class AutomationEngine:
 
     def __init__(self):
         self._user_tz: ZoneInfo = get_user_tz()
-        # APScheduler 使用使用者時區解讀 cron 觸發時間
         self.scheduler = BackgroundScheduler(timezone=self._user_tz)
-        # 記錄設備最後運行的資訊，用於判斷任務重疊
+
         # 儲存格式: device_id -> {start_ts: 開始時間戳, est_end_ts: 預估結束時間戳}
         self.last_run_info: Dict[str, Dict[str, float]] = {}
 
+        # 追蹤「已成功啟動但尚未完成」的執行實例
+        # key: device_id
+        self.active_runs: Dict[str, Dict[str, Any]] = {}
+
     def start(self):
         """啟動排程器。"""
+        recovered = history_store.close_open_runs_as_unknown_end()
+        if recovered > 0:
+            logger.warning("啟動時補記 %s 筆 unknown_end 歷史紀錄", recovered)
+
         self.scheduler.start()
+        self.scheduler.add_job(
+            self._reconcile_active_runs,
+            "interval",
+            seconds=45,
+            id="_reconcile_active_runs",
+            replace_existing=True,
+            max_instances=1,
+            coalesce=True,
+        )
+
         now_utc = datetime.now(timezone.utc)
         now_local = now_utc.astimezone(self._user_tz)
         logger.info(
@@ -60,7 +81,7 @@ class AutomationEngine:
             self._smart_clean_job,
             trigger,
             id=task_id,
-            args=[device_id, est_duration, zones or []],
+            args=[task_id, device_id, est_duration, zones or []],
             replace_existing=True,
         )
 
@@ -95,27 +116,26 @@ class AutomationEngine:
         """
         jobs = self.scheduler.get_jobs()
         result = []
-        
-        # 建立一個快速查詢字典，從 settings.schedules 中獲取中繼資料
+
         config_map = {s.task_id: s for s in settings.schedules}
-        
+
         for job in jobs:
+            if job.id == "_reconcile_active_runs":
+                continue
+
             next_run_utc = (
                 job.next_run_time.astimezone(timezone.utc) if job.next_run_time else None
             )
             next_run_local = (
-                job.next_run_time.astimezone(self._user_tz)
-                if job.next_run_time
-                else None
+                job.next_run_time.astimezone(self._user_tz) if job.next_run_time else None
             )
-            
-            # 獲取原始設定中的 cron 與 zones
+
             cfg = config_map.get(job.id)
             cron_str = cfg.cron if cfg else "--"
             zones = cfg.zones if cfg else []
             device_id = cfg.device_id if cfg else "unknown"
             est_duration = cfg.est_duration if cfg else 40
-            
+
             result.append(
                 {
                     "task_id": job.id,
@@ -123,19 +143,56 @@ class AutomationEngine:
                     "cron": cron_str,
                     "zones": zones,
                     "est_duration": est_duration,
-                    "next_run_utc": (
-                        next_run_utc.isoformat() if next_run_utc else None
-                    ),
-                    "next_run_local": (
-                        next_run_local.isoformat() if next_run_local else None
-                    ),
+                    "next_run_utc": next_run_utc.isoformat() if next_run_utc else None,
+                    "next_run_local": next_run_local.isoformat() if next_run_local else None,
                     "timezone": str(self._user_tz),
                 }
             )
         return result
 
+    def _is_cleaning_state(self, state: str) -> bool:
+        normalized = (state or "").lower()
+        return "clean" in normalized or "return" in normalized
+
+    def _parse_clean_time_to_sec(self, clean_time: str) -> int:
+        # 預期格式: H:MM:SS
+        try:
+            parts = [int(x) for x in clean_time.split(":")]
+            if len(parts) != 3:
+                return 0
+            return (parts[0] * 3600) + (parts[1] * 60) + parts[2]
+        except Exception:
+            return 0
+
+    def _emit_event(
+        self,
+        run_id: str,
+        task_id: str,
+        device_id: str,
+        zones: List[int],
+        event_type: str,
+        reason: Optional[str] = None,
+    ) -> None:
+        try:
+            history_store.append_event(
+                RunEvent.now(
+                    run_id=run_id,
+                    task_id=task_id,
+                    device_id=device_id,
+                    zones=zones,
+                    event_type=event_type,
+                    reason=reason,
+                )
+            )
+        except Exception as exc:
+            logger.error("寫入排程事件失敗: run_id=%s error=%s", run_id, exc)
+
     def _smart_clean_job(
-        self, device_id: str, est_duration: int, zones: Optional[List[int]] = None
+        self,
+        task_id: str,
+        device_id: str,
+        est_duration: int,
+        zones: Optional[List[int]] = None,
     ):
         """
         核心任務執行邏輯，包含智慧衝突檢測：
@@ -148,6 +205,7 @@ class AutomationEngine:
         now = datetime.now(timezone.utc)
         now_ts = now.timestamp()
         now_local = now.astimezone(self._user_tz)
+        run_id = f"{task_id}-{int(now_ts)}"
 
         zone_info = f"分區 {zones}" if zones else "全屋"
         logger.info(
@@ -163,50 +221,64 @@ class AutomationEngine:
             controller = manager.get_device(device_id)
             status = controller.status()
 
-            # 1. 衝突檢查：是否已經在運作？
-            if "Cleaning" in status.state or "Returning" in status.state:
-                logger.warning(
-                    "任務衝突：設備 %s 目前狀態為 %s，略過此次排程。",
-                    device_id,
-                    status.state,
+            if self._is_cleaning_state(status.state):
+                reason = f"任務衝突：設備目前狀態為 {status.state}"
+                logger.warning("%s，略過此次排程。", reason)
+                self._emit_event(
+                    run_id, task_id, device_id, zones, event_type="skipped", reason=reason
                 )
                 return
 
-            # 2. 電量檢查
             if status.battery < 20:
-                logger.warning(
-                    "電量不足：%s 電量僅剩 %s%%，略過此次排程。",
-                    device_id,
-                    status.battery,
+                reason = f"電量不足：{status.battery}%"
+                logger.warning("%s，略過此次排程。", reason)
+                self._emit_event(
+                    run_id, task_id, device_id, zones, event_type="skipped", reason=reason
                 )
                 return
 
-            # 3. 智慧判定：是否與前一次任務的預估時間重疊？
             if device_id in self.last_run_info:
                 last_est_end_ts = self.last_run_info[device_id]["est_end_ts"]
                 if now_ts < last_est_end_ts:
                     remaining = (last_est_end_ts - now_ts) / 60
-                    logger.warning(
-                        "任務重疊：前次任務預估尚未結束 (預計還剩 %.1f 分鐘)，略過此次排程。",
-                        remaining,
+                    reason = f"任務重疊：前次任務預估尚未結束（剩餘 {remaining:.1f} 分鐘）"
+                    logger.warning("%s，略過此次排程。", reason)
+                    self._emit_event(
+                        run_id,
+                        task_id,
+                        device_id,
+                        zones,
+                        event_type="skipped",
+                        reason=reason,
                     )
                     return
 
-            # 4. 執行啟動指令 (分區 or 全屋)
             if zones:
-                # 分區清掃模式
                 logger.info("執行分區清掃：%s", zones)
                 controller.segment_clean(zones)
             else:
-                # 全屋清掃模式
                 controller.start()
 
-            # 5. 更新預估運行時間記錄
             est_end_ts = now_ts + (est_duration * 60)
             self.last_run_info[device_id] = {
                 "start_ts": now_ts,
                 "est_end_ts": est_end_ts,
             }
+
+            self.active_runs[device_id] = {
+                "run_id": run_id,
+                "task_id": task_id,
+                "device_id": device_id,
+                "zones": zones,
+                "started_at_utc": now.isoformat(),
+                "start_ts": now_ts,
+                "start_battery": status.battery,
+                "start_area": float(status.cleaned_area),
+                "start_clean_time_sec": self._parse_clean_time_to_sec(status.cleaning_since),
+                "non_cleaning_count": 0,
+            }
+
+            self._emit_event(run_id, task_id, device_id, zones, event_type="started")
 
             est_end_utc = datetime.fromtimestamp(est_end_ts, timezone.utc)
             est_end_local = est_end_utc.astimezone(self._user_tz)
@@ -220,7 +292,92 @@ class AutomationEngine:
 
         except Exception as e:
             logger.error("執行智慧清掃任務時發生錯誤: %s", e)
+            self._emit_event(
+                run_id,
+                task_id,
+                device_id,
+                zones,
+                event_type="failed",
+                reason=str(e),
+            )
+
+    def _reconcile_active_runs(self) -> None:
+        """背景輪詢執行中 run，判斷是否完成並產生統計紀錄。"""
+        if not self.active_runs:
+            return
+
+        now = datetime.now(timezone.utc)
+        device_ids = list(self.active_runs.keys())
+
+        for device_id in device_ids:
+            run = self.active_runs.get(device_id)
+            if not run:
+                continue
+
+            try:
+                controller = manager.get_device(device_id)
+                status = controller.status()
+            except Exception as exc:
+                logger.warning("輪詢執行狀態失敗: device=%s error=%s", device_id, exc)
+                continue
+
+            state = status.state or ""
+            if self._is_cleaning_state(state):
+                run["non_cleaning_count"] = 0
+                continue
+
+            # Busy/Unreachable 先延後判定，避免誤判結束
+            lower_state = state.lower()
+            if "offline" in lower_state or "unreachable" in lower_state or "busy" in lower_state:
+                logger.info("設備 %s 目前狀態 %s，暫不判定 run 結束", device_id, state)
+                continue
+
+            run["non_cleaning_count"] = int(run.get("non_cleaning_count", 0)) + 1
+            if run["non_cleaning_count"] < 2:
+                continue
+
+            ended_at_utc = now
+            started_at_utc = datetime.fromisoformat(run["started_at_utc"])
+            duration_sec = max(0, int((ended_at_utc - started_at_utc).total_seconds()))
+            area_delta = max(0.0, float(status.cleaned_area) - float(run.get("start_area", 0.0)))
+            battery_delta = max(0, int(run.get("start_battery", 0)) - int(status.battery))
+            zones = run.get("zones", [])
+
+            try:
+                history_store.append_run_record(
+                    RunRecord(
+                        run_id=run["run_id"],
+                        task_id=run["task_id"],
+                        device_id=run["device_id"],
+                        zones=zones,
+                        started_at_utc=started_at_utc,
+                        ended_at_utc=ended_at_utc,
+                        duration_sec=duration_sec,
+                        area_delta_m2=round(area_delta, 3),
+                        battery_delta_pct=battery_delta,
+                        status="completed",
+                        is_estimated=len(zones) > 1,
+                    )
+                )
+                self._emit_event(
+                    run["run_id"],
+                    run["task_id"],
+                    run["device_id"],
+                    zones,
+                    event_type="completed",
+                )
+            except Exception as exc:
+                logger.error("寫入執行完成紀錄失敗: run_id=%s error=%s", run["run_id"], exc)
+
+            self.active_runs.pop(device_id, None)
+            logger.info(
+                "排程任務已完成: run_id=%s device=%s duration=%ss area=%.3fm2 battery=%s%%",
+                run["run_id"],
+                device_id,
+                duration_sec,
+                area_delta,
+                battery_delta,
+            )
 
 
-# 全域自動化引擎實例
 automation = AutomationEngine()

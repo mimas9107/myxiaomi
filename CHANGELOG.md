@@ -1,5 +1,23 @@
 # 更新日誌 (CHANGELOG)
 
+### [0.3.6] - 2026-03-06
+
+### 新增
+- **排程歷史資料模型**：新增 `RunEvent` 與 `RunRecord`，建立排程執行事件與單次清掃結果的結構化資料基礎。
+- **歷史儲存層**：新增 `HistoryStore`，使用本地 `data/cleaning_history.jsonl` 儲存事件與 run 紀錄，支援 `list_runs()` 與 `aggregate_stats()`。
+- **歷史統計 API**：
+  - `GET /v1/history/runs` — 查詢排程歷史紀錄（支援 `device_id`、`task_id`、`limit`、時間區間）。
+  - `GET /v1/history/stats` — 查詢累計統計與 `zone_breakdown` 分區統計。
+- **Dashboard 歷史視覺化**：新增「排程歷史與清掃統計」區塊，顯示最近 run、累計統計卡片、分區統計與估算標記。
+
+### 優化
+- **排程生命週期追蹤**：`AutomationEngine` 新增 `active_runs`，於排程啟動時記錄 baseline（電量、面積、時間）。
+- **完成判定穩定化**：新增背景輪詢 `_reconcile_active_runs()`，採「連續 2 次非 Cleaning/Returning」才判定完成，並對 `Offline/Busy` 延後判定，降低誤判。
+- **重啟恢復**：服務啟動時會補記遺留 run 為 `unknown_end`，避免歷史資料靜默遺失。
+
+### 修復
+- 修正專案執行期歷史檔案管理：新增 `.gitignore` 規則忽略 `data/cleaning_history.jsonl`，避免將運行資料誤納入版本控制。
+
 ### [0.3.5] - 2026-03-05
 
 ### 新增

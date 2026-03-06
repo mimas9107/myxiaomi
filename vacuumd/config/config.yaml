@@ -73,3 +73,10 @@ schedules:
   enabled: true
   zones:
   - 18
+- task_id: testlog
+  device_id: robot_s5
+  cron: 29 22 * * *
+  est_duration: 40
+  enabled: true
+  zones:
+  - 17

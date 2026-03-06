@@ -291,6 +291,109 @@
                 </div>
             </div>
         </section>
+
+        <!-- 排程歷史與統計 -->
+        <section class="mb-12">
+            <h2 class="text-xl font-bold mb-6 flex items-center text-slate-200">
+                <svg class="w-5 h-5 mr-2 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                    </path>
+                </svg>
+                排程歷史與清掃統計
+            </h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div class="bg-slate-800/60 border border-slate-700 rounded-xl p-4">
+                    <div class="text-xs text-slate-400">完成次數</div>
+                    <div class="text-2xl font-bold text-emerald-300" x-text="historyStats.total_runs || 0"></div>
+                </div>
+                <div class="bg-slate-800/60 border border-slate-700 rounded-xl p-4">
+                    <div class="text-xs text-slate-400">累計清掃面積</div>
+                    <div class="text-2xl font-bold text-emerald-300"
+                        x-text="(historyStats.total_area_m2 || 0) + ' m²'"></div>
+                </div>
+                <div class="bg-slate-800/60 border border-slate-700 rounded-xl p-4">
+                    <div class="text-xs text-slate-400">累計清掃時間</div>
+                    <div class="text-2xl font-bold text-emerald-300"
+                        x-text="formatDuration(historyStats.total_duration_sec || 0)"></div>
+                </div>
+                <div class="bg-slate-800/60 border border-slate-700 rounded-xl p-4">
+                    <div class="text-xs text-slate-400">累計耗電</div>
+                    <div class="text-2xl font-bold text-emerald-300"
+                        x-text="(historyStats.total_battery_used_pct || 0) + '%'"></div>
+                </div>
+            </div>
+
+            <div class="bg-slate-800/50 rounded-2xl border border-slate-700 shadow-xl p-5 mb-6">
+                <h3 class="text-sm font-bold text-emerald-400 mb-4 uppercase tracking-wider">分區統計</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    <template x-for="(zone, zoneKey) in (historyStats.zone_breakdown || {})" :key="zoneKey">
+                        <div class="bg-slate-900/60 border border-slate-700 rounded-xl p-3">
+                            <div class="text-sm font-bold text-slate-200" x-text="'區段: ' + zoneLabel(zoneKey)"></div>
+                            <div class="text-xs text-slate-400 mt-1"
+                                x-text="'時間: ' + formatDuration(zone.total_duration_sec || 0)"></div>
+                            <div class="text-xs text-slate-400"
+                                x-text="'面積: ' + ((zone.total_area_m2 || 0) + ' m²')"></div>
+                            <div class="text-xs text-slate-400"
+                                x-text="'耗電: ' + ((zone.total_battery_used_pct || 0) + '%')"></div>
+                            <template x-if="zone.is_estimated">
+                                <div class="text-[10px] text-amber-400 mt-1">估算值（多分區平均分攤）</div>
+                            </template>
+                        </div>
+                    </template>
+                    <template x-if="Object.keys(historyStats.zone_breakdown || {}).length === 0">
+                        <div class="text-sm text-slate-500 italic">目前尚無可統計資料</div>
+                    </template>
+                </div>
+            </div>
+
+            <div class="bg-slate-800/50 rounded-2xl border border-slate-700 shadow-xl overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left">
+                        <thead>
+                            <tr
+                                class="bg-slate-900/50 text-slate-400 text-xs font-bold uppercase tracking-widest border-b border-slate-700">
+                                <th class="px-6 py-4">開始時間</th>
+                                <th class="px-6 py-4">任務</th>
+                                <th class="px-6 py-4">區段</th>
+                                <th class="px-6 py-4">清掃時間</th>
+                                <th class="px-6 py-4">面積</th>
+                                <th class="px-6 py-4">耗電</th>
+                                <th class="px-6 py-4">狀態</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-700/50 text-sm">
+                            <template x-for="run in historyRuns" :key="run.run_id">
+                                <tr class="hover:bg-slate-700/30 transition-colors">
+                                    <td class="px-6 py-4 text-slate-300" x-text="formatDate(run.started_at_utc)"></td>
+                                    <td class="px-6 py-4">
+                                        <div class="font-bold text-slate-200" x-text="run.task_id"></div>
+                                        <div class="text-[10px] text-slate-500" x-text="run.device_id"></div>
+                                    </td>
+                                    <td class="px-6 py-4 text-slate-300" x-text="zonesLabel(run.zones || [])"></td>
+                                    <td class="px-6 py-4 text-slate-300" x-text="formatDuration(run.duration_sec || 0)"></td>
+                                    <td class="px-6 py-4 text-slate-300" x-text="(run.area_delta_m2 || 0) + ' m²'"></td>
+                                    <td class="px-6 py-4 text-slate-300" x-text="(run.battery_delta_pct || 0) + '%'"></td>
+                                    <td class="px-6 py-4">
+                                        <span class="px-2 py-1 rounded text-xs font-bold"
+                                            :class="run.status === 'completed' ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'"
+                                            x-text="run.status"></span>
+                                    </td>
+                                </tr>
+                            </template>
+                            <template x-if="historyRuns.length === 0">
+                                <tr>
+                                    <td colspan="7" class="px-6 py-10 text-center text-slate-500 italic">
+                                        尚無排程歷史紀錄
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
     </div>
 
     <script>
@@ -298,6 +401,8 @@
             return {
                 devices: [],
                 schedules: [],
+                historyRuns: [],
+                historyStats: {},
                 serverTimezone: 'UTC',
                 isAdding: false,
                 isEditing: false,
@@ -312,6 +417,7 @@
                     await this.fetchDevices();
                     if (this.devices.length > 0) this.newJob.device_id = this.devices[0].id;
                     await this.fetchSchedules();
+                    await this.fetchHistory();
 
                     // Initial status fetch
                     this.devices.forEach(d => this.fetchStatus(d.id));
@@ -319,6 +425,7 @@
                     setInterval(() => {
                         this.devices.forEach(d => this.fetchStatus(d.id));
                         this.fetchSchedules();
+                        this.fetchHistory();
                     }, 5000);
                 },
                 async fetchDevices() {
@@ -334,6 +441,27 @@
                         this.serverTimezone = data.timezone;
                     } catch (e) {
                         console.error('讀取排程失敗：', e);
+                    }
+                },
+                async fetchHistory() {
+                    await Promise.all([this.fetchHistoryRuns(), this.fetchHistoryStats()]);
+                },
+                async fetchHistoryRuns() {
+                    try {
+                        const res = await fetch('/v1/history/runs?limit=20');
+                        const data = await res.json();
+                        this.historyRuns = data.runs || [];
+                    } catch (e) {
+                        console.error('讀取歷史紀錄失敗：', e);
+                    }
+                },
+                async fetchHistoryStats() {
+                    try {
+                        const res = await fetch('/v1/history/stats');
+                        const data = await res.json();
+                        this.historyStats = data || {};
+                    } catch (e) {
+                        console.error('讀取統計資料失敗：', e);
                     }
                 },
                 async fetchStatus(id) {
@@ -443,6 +571,29 @@
                     const d = new Date(iso);
                     const pad = (n) => n.toString().padStart(2, '0');
                     return `${d.getFullYear()}/${pad(d.getMonth() + 1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+                },
+                formatDuration(totalSec) {
+                    const sec = Math.max(0, parseInt(totalSec || 0));
+                    const h = Math.floor(sec / 3600);
+                    const m = Math.floor((sec % 3600) / 60);
+                    const s = sec % 60;
+                    if (h > 0) return `${h}h ${m}m ${s}s`;
+                    if (m > 0) return `${m}m ${s}s`;
+                    return `${s}s`;
+                },
+                zonesLabel(zones) {
+                    if (!zones || zones.length === 0) return '全屋';
+                    return zones.map(z => this.zoneLabel(String(z))).join(', ');
+                },
+                zoneLabel(zoneKey) {
+                    if (zoneKey === 'whole_home') return '全屋';
+                    const zoneId = parseInt(zoneKey);
+                    for (const device of this.devices) {
+                        if (device.room_mapping && device.room_mapping[zoneId]) {
+                            return `${device.room_mapping[zoneId]} (${zoneKey})`;
+                        }
+                    }
+                    return zoneKey;
                 },
                 translateState(state) {
                     if (!state) return '連線中...';

@@ -24,3 +24,6 @@ output-token.txt
 
 #development journal
 develop_journal/
+
+# runtime data
+data/cleaning_history.jsonl
