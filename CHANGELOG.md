@@ -1,5 +1,19 @@
 # 更新日誌 (CHANGELOG)
 
+### [0.3.7] - 2026-03-07
+
+### 優化
+- **LAN-First 網路策略收斂**：確認本地 Fake Cloud 架構以「精準 DNS 攔截」為主，不再依賴攔截整個 Xiaomi 網域。
+- **部署路徑簡化**：在 Router DNS 正確指向 RPi `dnsmasq` 的前提下，`iptables DNAT` 由必要條件降為可選備援。
+
+### 修復
+- **DNS storm 根因排除**：移除過度寬泛的 DNS spoof（如 `mi.com`/`xiaomi.com` 全網域攔截）後，解決 vacuum Cloud retry loop 造成的高頻 DNS 查詢與網路風暴。
+
+### 文件
+- 新增並整理 2026-03-07 技術紀錄，完整記錄 DNS storm 的根因、修復策略與最終穩定拓樸。
+- README 補充「DNS 設定重點」，明確規範僅攔截 `ot.io.mi.com` / `ott.io.mi.com`（含區域子網域）與 Router DNS 轉送路徑。
+- 將 `setiptables_vacuum_fix.sh`、`unsetiptables_vacuum_fix.sh` 調整為本地實驗腳本，不再納入版本追蹤。
+
 ### [0.3.6] - 2026-03-06
 
 ### 新增

@@ -27,3 +27,7 @@ develop_journal/
 
 # runtime data
 data/cleaning_history.jsonl
+
+# local network experiment scripts (do not track)
+setiptables_vacuum_fix.sh
+unsetiptables_vacuum_fix.sh
