@@ -28,6 +28,13 @@ class ServerConfig(BaseModel):
     # 使用者時區 (IANA 格式，如 "Asia/Taipei")。
     # cron 排程時間會依此時區解讀；內部邏輯仍統一使用 UTC。
     timezone: str = "UTC"
+    # 備援守門：每小時檢查是否因外部定時而正在清掃，若持續清掃則回充
+    fallback_guard_enabled: bool = True
+    fallback_guard_cron: str = "31 * * * *"
+    # 為了繞過 status TTLCache，建議設定至少 > cache_ttl
+    fallback_guard_confirm_seconds: int = 6
+    # 僅攔截「剛啟動不久」的清掃（分鐘），避免誤停本地長任務
+    fallback_guard_recent_cleaning_minutes: int = 10
 
 
 class ScheduleConfig(BaseModel):

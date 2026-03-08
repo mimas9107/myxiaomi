@@ -58,7 +58,39 @@ async def startup_event():
                 schedule.cron,
                 exc,
             )
+
+    fallback_loaded = 0
+    if settings.server.fallback_guard_enabled:
+        for device in settings.devices:
+            try:
+                automation.add_fallback_guard_job(
+                    device_id=device.id,
+                    cron=settings.server.fallback_guard_cron,
+                    confirm_seconds=max(
+                        settings.server.fallback_guard_confirm_seconds,
+                        settings.server.cache_ttl + 1,
+                    ),
+                    recent_cleaning_minutes=max(
+                        1,
+                        settings.server.fallback_guard_recent_cleaning_minutes,
+                    ),
+                )
+                fallback_loaded += 1
+            except Exception as exc:
+                logger.error(
+                    "備援守門任務載入失敗: device_id=%s cron=%s error=%s",
+                    device.id,
+                    settings.server.fallback_guard_cron,
+                    exc,
+                )
+
     logger.info("系統啟動成功：排程引擎已運行，已載入 %s 筆排程任務。", loaded)
+    if settings.server.fallback_guard_enabled:
+        logger.info(
+            "備援守門任務已啟用：已載入 %s 筆（cron=%s）。",
+            fallback_loaded,
+            settings.server.fallback_guard_cron,
+        )
 
 
 @app.on_event("shutdown")

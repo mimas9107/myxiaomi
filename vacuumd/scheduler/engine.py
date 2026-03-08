@@ -1,4 +1,5 @@
 import logging
+import time
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 from zoneinfo import ZoneInfo
@@ -12,6 +13,8 @@ from vacuumd.controller.manager import manager
 from vacuumd.model.cleaning_history import RunEvent, RunRecord
 
 logger = logging.getLogger(__name__)
+SYSTEM_JOB_RECONCILE_ID = "_reconcile_active_runs"
+SYSTEM_JOB_FALLBACK_PREFIX = "_fallback_guard_"
 
 
 class AutomationEngine:
@@ -45,7 +48,7 @@ class AutomationEngine:
             self._reconcile_active_runs,
             "interval",
             seconds=45,
-            id="_reconcile_active_runs",
+            id=SYSTEM_JOB_RECONCILE_ID,
             replace_existing=True,
             max_instances=1,
             coalesce=True,
@@ -95,6 +98,40 @@ class AutomationEngine:
             zone_info,
         )
 
+    def add_fallback_guard_job(
+        self,
+        device_id: str,
+        cron: str,
+        confirm_seconds: int,
+        recent_cleaning_minutes: int,
+    ) -> None:
+        """
+        新增備援守門任務：若確認設備持續清掃中，則主動下達回充指令。
+
+        目標情境：外部排程（例如米家 App）已啟動清掃，但本地服務恢復後需接管並終止該次任務。
+        """
+        job_id = f"{SYSTEM_JOB_FALLBACK_PREFIX}{device_id}"
+        safe_confirm_seconds = max(1, int(confirm_seconds))
+        safe_recent_cleaning_minutes = max(1, int(recent_cleaning_minutes))
+        trigger = CronTrigger.from_crontab(cron, timezone=self._user_tz)
+        self.scheduler.add_job(
+            self._fallback_guard_home_job,
+            trigger,
+            id=job_id,
+            args=[device_id, safe_confirm_seconds, safe_recent_cleaning_minutes],
+            replace_existing=True,
+            max_instances=1,
+            coalesce=True,
+        )
+        logger.info(
+            "已註冊備援守門任務：device=%s cron=%s confirm=%ss recent<=%sm (%s)",
+            device_id,
+            cron,
+            safe_confirm_seconds,
+            safe_recent_cleaning_minutes,
+            self._user_tz,
+        )
+
     def remove_cleaning_job(self, task_id: str) -> bool:
         """
         移除指定的排程任務。
@@ -120,7 +157,9 @@ class AutomationEngine:
         config_map = {s.task_id: s for s in settings.schedules}
 
         for job in jobs:
-            if job.id == "_reconcile_active_runs":
+            if job.id == SYSTEM_JOB_RECONCILE_ID or job.id.startswith(
+                SYSTEM_JOB_FALLBACK_PREFIX
+            ):
                 continue
 
             next_run_utc = (
@@ -153,6 +192,97 @@ class AutomationEngine:
     def _is_cleaning_state(self, state: str) -> bool:
         normalized = (state or "").lower()
         return "clean" in normalized or "return" in normalized
+
+    def _is_actively_cleaning_state(self, state: str) -> bool:
+        """僅判定「正在掃地」，不包含 returning。"""
+        normalized = (state or "").lower()
+        return "clean" in normalized
+
+    def _fallback_guard_home_job(
+        self,
+        device_id: str,
+        confirm_seconds: int,
+        recent_cleaning_minutes: int,
+    ) -> None:
+        """
+        備援守門：
+        1) 先檢查是否在掃地
+        2) 等待 confirm_seconds
+        3) 再確認一次仍在掃地才送回充
+        """
+        now = datetime.now(timezone.utc)
+        logger.info(
+            "執行備援守門檢查：device=%s UTC=%s",
+            device_id,
+            now.strftime("%Y-%m-%dT%H:%M:%S"),
+        )
+
+        try:
+            if device_id in self.active_runs:
+                logger.info(
+                    "備援守門略過：device=%s 目前有本地 active run，避免誤停",
+                    device_id,
+                )
+                return
+
+            controller = manager.get_device(device_id)
+            first_status = controller.status()
+            if not self._is_actively_cleaning_state(first_status.state):
+                logger.info(
+                    "備援守門略過：device=%s 初次狀態=%s",
+                    device_id,
+                    first_status.state,
+                )
+                return
+
+            recent_threshold_sec = recent_cleaning_minutes * 60
+            first_clean_time_sec = self._parse_clean_time_to_sec(first_status.cleaning_since)
+            if first_clean_time_sec > recent_threshold_sec:
+                logger.info(
+                    "備援守門略過：device=%s 初次清掃時長=%ss 超過門檻=%ss",
+                    device_id,
+                    first_clean_time_sec,
+                    recent_threshold_sec,
+                )
+                return
+
+            logger.warning(
+                "備援守門偵測到疑似 fallback 清掃：device=%s state=%s clean_time=%s，%s 秒後再次確認",
+                device_id,
+                first_status.state,
+                first_status.cleaning_since,
+                confirm_seconds,
+            )
+            time.sleep(confirm_seconds)
+
+            second_status = controller.status()
+            if not self._is_actively_cleaning_state(second_status.state):
+                logger.info(
+                    "備援守門二次確認未命中：device=%s 二次狀態=%s，略過回充",
+                    device_id,
+                    second_status.state,
+                )
+                return
+
+            second_clean_time_sec = self._parse_clean_time_to_sec(second_status.cleaning_since)
+            if second_clean_time_sec > recent_threshold_sec:
+                logger.info(
+                    "備援守門二次確認略過：device=%s 二次清掃時長=%ss 超過門檻=%ss",
+                    device_id,
+                    second_clean_time_sec,
+                    recent_threshold_sec,
+                )
+                return
+
+            controller.home()
+            logger.warning(
+                "備援守門已下達回充：device=%s state=%s clean_time=%s",
+                device_id,
+                second_status.state,
+                second_status.cleaning_since,
+            )
+        except Exception as exc:
+            logger.error("備援守門執行失敗：device=%s error=%s", device_id, exc)
 
     def _parse_clean_time_to_sec(self, clean_time: str) -> int:
         # 預期格式: H:MM:SS

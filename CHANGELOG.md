@@ -1,5 +1,23 @@
 # 更新日誌 (CHANGELOG)
 
+### [0.3.8] - 2026-03-08
+
+### 新增
+- **每小時 31 分備援守門機制**：新增 fallback guard 排程（預設 `31 * * * *`），在偵測到機器人清掃中時，經過二次確認後自動下達回充指令。
+
+### 優化
+- **雙階段狀態確認**：fallback guard 會先檢查一次狀態，再等待 `fallback_guard_confirm_seconds` 後做第二次確認，降低誤判觸發機率。
+- **與快取協調**：啟動時會自動確保確認秒數至少大於 `cache_ttl`，避免二次確認讀到同一筆 TTL 快取資料。
+- **長任務保護**：fallback guard 僅處理「清掃時長在門檻內」的任務，且遇到本地 `active_runs` 會直接略過，避免誤停 myxiaomi 全屋等長時清掃。
+- **排程列表去雜訊**：`list_jobs()` 會略過系統內部任務（run reconcile 與 fallback guard），避免干擾使用者排程檢視。
+
+### 配置
+- `server` 區塊新增：
+  - `fallback_guard_enabled`（預設 `true`）
+  - `fallback_guard_cron`（預設 `"31 * * * *"`）
+  - `fallback_guard_confirm_seconds`（預設 `6`）
+  - `fallback_guard_recent_cleaning_minutes`（預設 `10`）
+
 ### [0.3.7] - 2026-03-07
 
 ### 優化

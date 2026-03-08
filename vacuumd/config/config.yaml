@@ -21,6 +21,13 @@ server:
   retry_count: 3
   # 使用者時區 (IANA 格式)。cron 排程時間依此時區解讀，內部邏輯統一 UTC。
   timezone: "Asia/Taipei"
+  # 備援守門：每小時 31 分檢查一次是否仍在清掃，若確認中則下達回充
+  fallback_guard_enabled: true
+  fallback_guard_cron: "31 * * * *"
+  # 需大於 cache_ttl，確保第二次狀態確認不是同一筆快取
+  fallback_guard_confirm_seconds: 6
+  # 只攔截「剛啟動不久」的清掃，避免誤停本地長任務（例如 :00 啟動超過 30 分）
+  fallback_guard_recent_cleaning_minutes: 10
 
 schedules:
 - task_id: daily_1300
