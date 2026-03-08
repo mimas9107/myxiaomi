@@ -1,6 +1,6 @@
 # vacuumd 專案說明書
 
-版本：0.3.8
+版本：0.3.9
 
 ## 專案簡介
 vacuumd 是一個針對 Roborock / Xiaomi 掃地機器人開發的家庭內網（LAN）控制器。本專案透過封裝底層 miIO 通訊協議，提供具備高可靠性、狀態快取以及智慧排程功能的控制系統。
@@ -75,7 +75,7 @@ address=/xiaomi.com/192.168.1.16
 - uv 套件管理工具
 
 ### 啟動伺服器
-執行以下腳本即可自動釋放埠號並啟動服務：
+執行以下腳本即可自動釋放埠號並啟動服務（預設背景模式）：
 ```bash
 ./start-server.sh
 ```
@@ -84,6 +84,18 @@ address=/xiaomi.com/192.168.1.16
 - 載入專案根目錄 `.env`（若存在）
 - 檢查 `VACUUM_ROBOT_S5_TOKEN`
 - 使用 `uv run --python .venv/bin/python` 啟動 Uvicorn
+- 將輸出寫入 `/tmp/myxiaomi.log`
+- 寫入 PID 至 `/tmp/vacuumd.pid`
+
+#### 前景除錯模式
+```bash
+./start-server.sh --foreground
+```
+
+#### 可覆寫環境變數
+- `VACUUMD_PORT`：服務埠號（預設 `8000`）
+- `VACUUMD_LOG_FILE`：日誌檔路徑（預設 `/tmp/myxiaomi.log`）
+- `VACUUMD_PID_FILE`：PID 檔路徑（預設 `/tmp/vacuumd.pid`）
 
 ### 安全設定（Token）
 建議改用環境變數注入 token，避免明碼寫入設定檔：

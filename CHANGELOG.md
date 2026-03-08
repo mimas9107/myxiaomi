@@ -1,5 +1,12 @@
 # 更新日誌 (CHANGELOG)
 
+### [0.3.9] - 2026-03-08
+
+### 優化
+- **啟動腳本預設背景化**：`start-server.sh` 預設改為背景啟動，並自動將輸出寫入 `/tmp/myxiaomi.log`，避免手動重導向時因順序錯誤遺失日誌。
+- **可觀測性提升**：新增 PID 檔案輸出（預設 `/tmp/vacuumd.pid`），啟動後會回報 PID、log 路徑，便於在 RPi 上追蹤與維運。
+- **啟動參數彈性**：新增 `--foreground` 模式，除錯時可切回前景啟動；同時支援 `VACUUMD_PORT`、`VACUUMD_LOG_FILE`、`VACUUMD_PID_FILE` 覆寫預設值。
+
 ### [0.3.8] - 2026-03-08
 
 ### 新增

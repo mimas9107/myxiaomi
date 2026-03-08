@@ -5,7 +5,12 @@ set -euo pipefail
 export PATH="/home/mimas/.local/bin:$PATH"
 PROJECT_ROOT="$(cd "$(dirname "$0")" && pwd)"
 PY_BIN="${PROJECT_ROOT}/.venv/bin/python"
+UV_BIN="/home/mimas/.local/bin/uv"
 export UV_CACHE_DIR="${UV_CACHE_DIR:-${PROJECT_ROOT}/.uv-cache}"
+PORT="${VACUUMD_PORT:-8000}"
+LOG_FILE="${VACUUMD_LOG_FILE:-/tmp/myxiaomi.log}"
+PID_FILE="${VACUUMD_PID_FILE:-/tmp/vacuumd.pid}"
+MODE="${1:-daemon}"
 
 cd "${PROJECT_ROOT}"
 
@@ -30,11 +35,30 @@ if [ ! -x "${PY_BIN}" ]; then
   exit 1
 fi
 
-# 釋放 8000 埠號
-echo "Cleaning up port 8000..."
-fuser -k 8000/tcp || true
+if [ "${MODE}" != "daemon" ] && [ "${MODE}" != "--foreground" ]; then
+  echo "Usage: ./start-server.sh [daemon|--foreground]"
+  exit 1
+fi
+
+# 釋放埠號
+echo "Cleaning up port ${PORT}..."
+fuser -k "${PORT}/tcp" || true
+
+SERVER_CMD=(
+  "${UV_BIN}" run --python "${PY_BIN}"
+  python -m uvicorn vacuumd.api.main:app --host 0.0.0.0 --port "${PORT}"
+)
 
 # 啟動 API 伺服器
-echo "Starting Vacuumd Server..."
-/home/mimas/.local/bin/uv run --python "${PY_BIN}" \
-  python -m uvicorn vacuumd.api.main:app --host 0.0.0.0 --port 8000
+if [ "${MODE}" = "--foreground" ]; then
+  echo "Starting Vacuumd Server in foreground on port ${PORT}..."
+  exec "${SERVER_CMD[@]}"
+fi
+
+echo "Starting Vacuumd Server in background on port ${PORT}..."
+nohup "${SERVER_CMD[@]}" > "${LOG_FILE}" 2>&1 < /dev/null &
+PID=$!
+echo "${PID}" > "${PID_FILE}"
+echo "Vacuumd started (PID=${PID})"
+echo "Log file: ${LOG_FILE}"
+echo "PID file: ${PID_FILE}"
