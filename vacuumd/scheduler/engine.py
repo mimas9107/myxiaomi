@@ -281,6 +281,7 @@ class AutomationEngine:
                 second_status.state,
                 second_status.cleaning_since,
             )
+            controller.home()
         except Exception as exc:
             logger.error("備援守門執行失敗：device=%s error=%s", device_id, exc)
 
