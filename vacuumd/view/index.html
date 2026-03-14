@@ -332,11 +332,11 @@
                         <div class="bg-slate-900/60 border border-slate-700 rounded-xl p-3">
                             <div class="text-sm font-bold text-slate-200" x-text="'區段: ' + zoneLabel(zoneKey)"></div>
                             <div class="text-xs text-slate-400 mt-1"
-                                x-text="'時間: ' + formatDuration(zone.total_duration_sec || 0)"></div>
+                                x-text="'累計時間: ' + formatDuration(zone.total_duration_sec || 0)"></div>
                             <div class="text-xs text-slate-400"
-                                x-text="'面積: ' + ((zone.total_area_m2 || 0) + ' m²')"></div>
+                                x-text="'累計面積: ' + ((zone.total_area_m2 || 0) + ' m²')"></div>
                             <div class="text-xs text-slate-400"
-                                x-text="'耗電: ' + ((zone.total_battery_used_pct || 0) + '%')"></div>
+                                x-text="'累計耗電: ' + ((zone.total_battery_used_pct || 0) + '%')"></div>
                             <template x-if="zone.is_estimated">
                                 <div class="text-[10px] text-amber-400 mt-1">估算值（多分區平均分攤）</div>
                             </template>
