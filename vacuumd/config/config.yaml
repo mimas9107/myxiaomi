@@ -21,21 +21,8 @@ server:
   retry_count: 3
   # 使用者時區 (IANA 格式)。cron 排程時間依此時區解讀，內部邏輯統一 UTC。
   timezone: "Asia/Taipei"
-  # 備援守門：每小時 31 分檢查一次是否仍在清掃，若確認中則下達回充
-  fallback_guard_enabled: true
-  fallback_guard_cron: "31 * * * *"
-  # 需大於 cache_ttl，確保第二次狀態確認不是同一筆快取
-  fallback_guard_confirm_seconds: 6
-  # 只攔截「剛啟動不久」的清掃，避免誤停本地長任務（例如 :00 啟動超過 30 分）
-  fallback_guard_recent_cleaning_minutes: 10
 
 schedules:
-- task_id: daily_1300
-  device_id: robot_s5
-  cron: 0 13 * * *
-  est_duration: 40
-  enabled: true
-  zones: []
 - task_id: kitchen_evening
   device_id: robot_s5
   cron: 0 21 * * *
@@ -51,39 +38,108 @@ schedules:
   zones:
   - 16
   - 18
-- task_id: test_ui_persists
+- task_id: a
   device_id: robot_s5
-  cron: 45 10 * * *
-  est_duration: 30
+  cron: 0 8 * * *
+  est_duration: 40
   enabled: true
   zones:
   - 17
-  - 19
-- task_id: test3
+- task_id: b
   device_id: robot_s5
-  cron: 30 17 * * *
+  cron: 0 9 * * *
+  est_duration: 40
+  enabled: true
+  zones:
+  - 19
+- task_id: c
+  device_id: robot_s5
+  cron: 0 10 * * *
+  est_duration: 40
+  enabled: true
+  zones:
+  - 16
+- task_id: d
+  device_id: robot_s5
+  cron: 0 11 * * *
   est_duration: 40
   enabled: true
   zones:
   - 20
-- task_id: test4
+- task_id: e
   device_id: robot_s5
-  cron: 30 18 * * *
+  cron: 0 12 * * *
   est_duration: 40
   enabled: true
   zones:
-  - 19
-- task_id: test5
+  - 21
+- task_id: f
   device_id: robot_s5
-  cron: 30 19 * * *
+  cron: 0 13 * * *
   est_duration: 40
   enabled: true
   zones:
   - 18
-- task_id: testlog
+- task_id: g
   device_id: robot_s5
-  cron: 29 22 * * *
+  cron: 0 14 * * *
   est_duration: 40
   enabled: true
   zones:
   - 17
+- task_id: h
+  device_id: robot_s5
+  cron: 0 15 * * *
+  est_duration: 40
+  enabled: true
+  zones:
+  - 19
+- task_id: i
+  device_id: robot_s5
+  cron: 0 16 * * *
+  est_duration: 40
+  enabled: true
+  zones:
+  - 21
+- task_id: j
+  device_id: robot_s5
+  cron: 0 17 * * *
+  est_duration: 40
+  enabled: true
+  zones:
+  - 20
+- task_id: k
+  device_id: robot_s5
+  cron: 0 18 * * *
+  est_duration: 40
+  enabled: true
+  zones:
+  - 16
+- task_id: l
+  device_id: robot_s5
+  cron: 0 19 * * *
+  est_duration: 40
+  enabled: true
+  zones:
+  - 18
+- task_id: m
+  device_id: robot_s5
+  cron: 0 20 * * *
+  est_duration: 40
+  enabled: true
+  zones:
+  - 21
+- task_id: n
+  device_id: robot_s5
+  cron: 0 21 * * *
+  est_duration: 40
+  enabled: true
+  zones:
+  - 19
+- task_id: o
+  device_id: robot_s5
+  cron: 0 22 * * *
+  est_duration: 40
+  enabled: true
+  zones:
+  - 16
