@@ -1,7 +1,7 @@
 import logging
 import time
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 from zoneinfo import ZoneInfo
 
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -197,6 +197,89 @@ class AutomationEngine:
         """僅判定「正在掃地」，不包含 returning。"""
         normalized = (state or "").lower()
         return "clean" in normalized
+
+    def try_start_voice_run(
+        self,
+        device_id: str,
+        status_state: str,
+        battery: int,
+        cleaned_area: float = 0.0,
+        cleaning_since: str = "0:00:00",
+        est_duration_minutes: int = 40,
+    ) -> Tuple[bool, str]:
+        """
+        嘗試建立語音觸發的 run（不直接下指令）。
+        回傳 (是否允許啟動, 訊息)。
+        """
+        now = datetime.now(timezone.utc)
+        now_ts = now.timestamp()
+        run_id = f"voice-{int(now_ts)}"
+
+        if device_id in self.active_runs:
+            return False, "任務衝突：已有執行中的任務"
+
+        if self._is_cleaning_state(status_state):
+            return False, f"任務衝突：設備目前狀態為 {status_state}"
+
+        if battery < 20:
+            return False, f"電量不足：{battery}%"
+
+        if device_id in self.last_run_info:
+            last_est_end_ts = self.last_run_info[device_id].get("est_end_ts", 0)
+            if now_ts < last_est_end_ts:
+                remaining = (last_est_end_ts - now_ts) / 60
+                return (
+                    False,
+                    f"任務重疊：前次任務預估尚未結束（剩餘 {remaining:.1f} 分鐘）",
+                )
+
+        est_end_ts = now_ts + (max(1, est_duration_minutes) * 60)
+        self.last_run_info[device_id] = {
+            "start_ts": now_ts,
+            "est_end_ts": est_end_ts,
+            "run_id": run_id,
+            "source": "voice",
+        }
+
+        self.active_runs[device_id] = {
+            "run_id": run_id,
+            "task_id": "voice",
+            "device_id": device_id,
+            "zones": [],
+            "started_at_utc": now.isoformat(),
+            "start_ts": now_ts,
+            "start_battery": battery,
+            "start_area": float(cleaned_area),
+            "start_clean_time_sec": self._parse_clean_time_to_sec(cleaning_since),
+            "non_cleaning_count": 0,
+        }
+
+        self._emit_event(run_id, "voice", device_id, [], event_type="started")
+        return True, "允許啟動"
+
+    def rollback_voice_run(self, device_id: str) -> None:
+        """語音啟動失敗時回滾 active_runs 與 last_run_info。"""
+        run = self.active_runs.pop(device_id, None)
+        last_info = self.last_run_info.get(device_id)
+        if last_info and last_info.get("source") == "voice":
+            if not run or last_info.get("run_id") == run.get("run_id"):
+                self.last_run_info.pop(device_id, None)
+
+    def finish_voice_run(self, device_id: str) -> None:
+        """語音任務結束時收尾，避免影響後續排程。"""
+        run = self.active_runs.pop(device_id, None)
+        if run:
+            self._emit_event(
+                run["run_id"],
+                run["task_id"],
+                run["device_id"],
+                run.get("zones", []),
+                event_type="completed",
+                reason="voice_dock",
+            )
+        last_info = self.last_run_info.get(device_id)
+        if last_info and last_info.get("source") == "voice":
+            last_info["est_end_ts"] = datetime.now(timezone.utc).timestamp()
 
     def _fallback_guard_home_job(
         self,

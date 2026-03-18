@@ -1,6 +1,6 @@
 # vacuumd 專案說明書
 
-版本：0.3.9
+版本：0.3.11
 
 ## 專案簡介
 vacuumd 是一個針對 Roborock / Xiaomi 掃地機器人開發的家庭內網（LAN）控制器。本專案透過封裝底層 miIO 通訊協議，提供具備高可靠性、狀態快取以及智慧排程功能的控制系統。
@@ -109,6 +109,61 @@ devices:
 ```
 
 若同時設定 `token` 與 `token_env`，系統會優先使用 `token`。
+
+### MQTT 帳密授權
+myxiaomi 在 Phase 4 中將透過 MQTT 訂閱 `/cmd` topic，因此啟動前需提供 broker 連線參數與授權帳密（以下為常用預設值）：
+
+```bash
+MQTT_HOST=127.0.0.1
+MQTT_PORT=1883
+MQTT_AUTH_USER=<your mqtt user>
+MQTT_AUTH_PASSWORD=<your mqtt password>
+MQTT_TLS=false
+MQTT_KEEPALIVE=60
+```
+
+請將上述變數寫入 `.env` 或由啟動腳本前置導出，FastAPI startup event 會自動載入並用於 `paho-mqtt` 連線。缺少連線參數或帳密會導致 MQTT subscriber 無法連線， esp-miao 也無法取得 discovery payload。
+連線或認證失敗會被記錄為 warning，系統會繼續啟動但暫時跳過 discovery 發布，避免直接中斷 myxiaomi 核心服務。
+
+#### MQTT 指令與回應
+esp-miao 會送出指令到 `home/vacuum_01/cmd`，目前支援：
+- `START`：啟動清掃
+- `DOCK`：回充
+
+myxiaomi 會回報結果到 `home/vacuum_01/status`：
+```json
+{"status":"ok","message":"啟動成功"}
+```
+若觸發電量守護或衝突檢測，將回傳 `status="error"` 與原因。
+
+#### MQTT 連線範例（paho-mqtt）
+以下片段示意如何使用上述環境變數進行連線：
+
+```python
+import os
+import paho.mqtt.client as mqtt
+
+client = mqtt.Client()
+client.username_pw_set(
+    os.getenv("MQTT_AUTH_USER", ""),
+    os.getenv("MQTT_AUTH_PASSWORD", ""),
+)
+if os.getenv("MQTT_TLS", "false").lower() in ("1", "true", "yes"):
+    client.tls_set()
+client.connect(
+    os.getenv("MQTT_HOST", "127.0.0.1"),
+    int(os.getenv("MQTT_PORT", "1883")),
+    int(os.getenv("MQTT_KEEPALIVE", "60")),
+)
+```
+
+#### MQTT 監聽工具
+專案提供簡易監聽工具，可用來確認 myxiaomi 是否有將 Discovery 或控制指令發布到指定 topic：
+
+```bash
+uv run python mqtt_monitor.py --topic home/discovery
+uv run python mqtt_monitor.py --topic home/vacuum_01/cmd
+```
 
 ### 房間與分區管理
 針對部分 Roborock S5 舊版韌體無法在 App 命名房間的問題，系統支援手動配置 `room_mapping`。

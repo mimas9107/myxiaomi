@@ -5,6 +5,7 @@ from vacuumd.api.routes import devices, control, schedules, history
 from vacuumd.config.settings import settings
 from vacuumd.scheduler.engine import automation
 from vacuumd.controller.cloud_faker import cloud_faker
+from vacuumd.mqtt_bridge import MqttBridge
 import os
 import time
 import logging
@@ -37,6 +38,12 @@ async def startup_event():
     """
     automation.start()
     cloud_faker.start()
+    mqtt_bridge = MqttBridge()
+    if mqtt_bridge.connect():
+        mqtt_bridge.publish_discovery()
+    else:
+        logger.warning("MQTT 連線失敗，已跳過 Discovery 發布。")
+    app.state.mqtt_bridge = mqtt_bridge
 
     loaded = 0
     for schedule in settings.schedules:
@@ -96,6 +103,9 @@ async def startup_event():
 @app.on_event("shutdown")
 async def shutdown_event():
     """應用程式關閉時的安全停止邏輯。"""
+    mqtt_bridge = getattr(app.state, "mqtt_bridge", None)
+    if mqtt_bridge:
+        mqtt_bridge.disconnect()
     automation.scheduler.shutdown()
     logger.info("系統關閉：排程引擎已安全停止。")
 

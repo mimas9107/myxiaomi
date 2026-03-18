@@ -1,5 +1,16 @@
 # 更新日誌 (CHANGELOG)
 
+### [0.3.11] - 2026-03-18
+
+### 新增
+- **MQTT Bridge**：新增 MQTT subscriber，支援 `home/vacuum_01/cmd` 的 `START` / `DOCK` 指令。
+- **Discovery 發布**：服務啟動時自動發布 `home/discovery`，提供 vacuum 的 aliases / commands / action_keywords。
+- **語音回應 Topic**：新增 `home/vacuum_01/status` 回應格式，回報成功或錯誤原因。
+
+### 優化
+- **語音觸發整合**：語音啟動寫入 `active_runs`，確保 fallback guard 能正確略過守門。
+- **衝突與電量守護**：語音指令同樣遵循既有衝突檢測與低電量拒絕邏輯。
+
 ### [0.3.10] - 2026-03-14
 
 ### 優化
