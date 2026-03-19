@@ -49,6 +49,10 @@ class MqttBridge:
         client.on_message = self._on_message
         client.on_disconnect = self._on_disconnect
 
+        # 設定 LWT (Last Will and Testament)
+        lwt_payload = json.dumps({"status": "offline", "device_id": "vacuum_01"}, ensure_ascii=False)
+        client.will_set(STATUS_TOPIC, lwt_payload, qos=1, retain=True)
+
         try:
             client.connect(host, port, keepalive)
         except Exception as exc:
@@ -90,7 +94,7 @@ class MqttBridge:
 
     def publish_status(self, status: str, message: str) -> None:
         """發布狀態回應（供 esp-miao 顯示）。"""
-        payload = {"status": status, "message": message}
+        payload = {"status": status, "message": message, "device_id": "vacuum_01"}
         self._publish(STATUS_TOPIC, payload, retain=False)
 
     def _publish(self, topic: str, payload: Dict[str, Any], retain: bool) -> None:
@@ -115,7 +119,13 @@ class MqttBridge:
         with self._lock:
             self._connected = True
             client.subscribe(CONTROL_TOPIC)
-        logger.info("MQTT 已連線並訂閱：%s", CONTROL_TOPIC)
+        
+        # 連線成功後發布 Online 狀態與 Discovery
+        online_payload = json.dumps({"status": "online", "device_id": "vacuum_01"}, ensure_ascii=False)
+        client.publish(STATUS_TOPIC, online_payload, qos=1, retain=True)
+        self.publish_discovery()
+        
+        logger.info("MQTT 已連線、發布狀態並訂閱：%s", CONTROL_TOPIC)
 
     def _on_disconnect(self, _client: mqtt.Client, _userdata, _rc: int) -> None:
         self._connected = False
