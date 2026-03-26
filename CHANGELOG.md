@@ -1,5 +1,46 @@
 # 更新日誌 (CHANGELOG)
 
+### [0.3.12] - 2026-03-26
+
+### 新增
+- **充電座看門狗（Charging Watchdog）**：新增自動化監控機制，偵測掃地機器人充電異常並自動觸發回充。
+
+### 偵測機制
+- **Layer 1 錯誤碼**：error_code=13（Charging fault）、state_code=9（Charging problem）、state_code=2（Charger disconnected）
+- **Layer 2 電量異常**：電量停滯、電量下降、狀態振盪（需 2 次確認）
+
+### 抑制策略
+- **排程密集窗口**：每小時 :00-:35 抑制，避免與排程衝突
+- **對接寬限期**：清掃結束後 10 分鐘抑制
+- **冷卻期**：成功回充後 15 分鐘內不觸發
+- **持續重試**：若 home() 未被接受，不進入冷卻期，持續重試直到成功
+
+### API 端點
+- `GET /v1/watchdog/status` - 查看看門狗狀態
+- `GET /v1/watchdog/history` - 查看觸發歷史
+- `POST /v1/watchdog/test` - 測試回充指令
+- `POST /v1/watchdog/pause` - 暫停看門狗
+- `POST /v1/watchdog/resume` - 恢復看門狗
+
+### 配置（config.yaml）
+```yaml
+watchdog:
+  enabled: true
+  check_interval_seconds: 60
+  confirmation_count: 2
+  suppress_window_start: ":00"
+  suppress_window_end: ":35"
+  post_cleaning_grace_minutes: 10
+  post_trigger_cooldown_minutes: 15
+  battery_stagnant_window_minutes: 15
+  min_reliable_battery: 5
+  oscillation_threshold: 3
+  oscillation_window_minutes: 5
+```
+
+### 模型更新
+- `VacuumState` 新增 `state_code` 與 `error_code` 欄位（從 miIO status 取得）
+
 ### [0.3.11] - 2026-03-18
 
 ### 新增
