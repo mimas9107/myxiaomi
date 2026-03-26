@@ -277,9 +277,24 @@ class ChargingWatchdog:
             controller = manager.get_device(device_id)
             controller.home()
 
-            self._state = WatchdogState.TRIGGERED
-            cooldown_duration = self.config.post_trigger_cooldown_minutes * 60
-            self._cooldown_end_time = time.monotonic() + cooldown_duration
+            time.sleep(2)
+
+            status = controller.status()
+            new_state_code = getattr(status, "state_code", None)
+            new_error_code = getattr(status, "error_code", None)
+
+            if new_state_code in {6, 15} or new_error_code == 0:
+                logger.info(
+                    f"[CHARGING_WATCHDOG] [{device_id}] 回充指令已接受，正在返回"
+                )
+                cooldown_duration = self.config.post_trigger_cooldown_minutes * 60
+                self._cooldown_end_time = time.monotonic() + cooldown_duration
+                self._state = WatchdogState.COOLDOWN
+            else:
+                logger.warning(
+                    f"[CHARGING_WATCHDOG] [{device_id}] 回充未成功回應，state_code={new_state_code} error_code={new_error_code}，不進入冷卻期"
+                )
+                self._state = WatchdogState.MONITORING
 
             history = TriggerHistory(
                 timestamp_utc=datetime.now(timezone.utc).isoformat(),
@@ -299,7 +314,6 @@ class ChargingWatchdog:
                 f"(battery: {battery_start}%→{battery_end}%, state_code={state_code})"
             )
 
-            self._state = WatchdogState.COOLDOWN
             return True
 
         except Exception as exc:
