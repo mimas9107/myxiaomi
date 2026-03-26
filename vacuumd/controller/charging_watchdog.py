@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 
 STATE_CODE_CHARGING = 8
 STATE_CODE_CHARGING_PROBLEM = 9
+STATE_CODE_CHARGER_DISCONNECTED = 2
 ERROR_CODE_CHARGING_FAULT = 13
 
 CLEANING_STATE_CODES = {5, 11, 17, 18}
@@ -175,6 +176,10 @@ class ChargingWatchdog:
         battery_tracker.record(battery)
         state_tracker.record(state_str)
 
+        logger.debug(
+            f"[CHARGING_WATCHDOG] [{device_id}] state={state_str} state_code={state_code} battery={battery}% is_on_charger={status.is_on_charger}"
+        )
+
         layer1_trigger, layer1_reason = self._check_layer1_fault(state_code, error_code)
         if layer1_trigger and layer1_reason:
             self._trigger_home(
@@ -236,6 +241,8 @@ class ChargingWatchdog:
             return True, TriggerReason.STATE_CODE_9
         if error_code == ERROR_CODE_CHARGING_FAULT:
             return True, TriggerReason.ERROR_CODE_13
+        if state_code == STATE_CODE_CHARGER_DISCONNECTED:
+            return True, TriggerReason.STATE_CODE_2
         return False, None
 
     def _check_layer2_battery(

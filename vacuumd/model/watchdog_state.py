@@ -19,6 +19,7 @@ class TriggerReason(str, Enum):
 
     STATE_CODE_9 = "state_code_9"
     ERROR_CODE_13 = "error_code_13"
+    STATE_CODE_2 = "state_code_2"
     BATTERY_STAGNANT = "battery_stagnant"
     BATTERY_DECREASING = "battery_decreasing"
     STATE_OSCILLATION = "state_oscillation"
