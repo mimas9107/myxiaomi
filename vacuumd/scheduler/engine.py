@@ -15,6 +15,7 @@ from vacuumd.model.cleaning_history import RunEvent, RunRecord
 logger = logging.getLogger(__name__)
 SYSTEM_JOB_RECONCILE_ID = "_reconcile_active_runs"
 SYSTEM_JOB_FALLBACK_PREFIX = "_fallback_guard_"
+SYSTEM_JOB_WATCHDOG_PREFIX = "_charging_watchdog_"
 
 
 class AutomationEngine:
@@ -53,6 +54,25 @@ class AutomationEngine:
             max_instances=1,
             coalesce=True,
         )
+
+        if settings.watchdog.enabled:
+            for device in settings.devices:
+                job_id = f"{SYSTEM_JOB_WATCHDOG_PREFIX}{device.id}"
+                self.scheduler.add_job(
+                    self._charging_watchdog_job,
+                    "interval",
+                    seconds=settings.watchdog.check_interval_seconds,
+                    id=job_id,
+                    args=[device.id],
+                    replace_existing=True,
+                    max_instances=1,
+                    coalesce=True,
+                )
+                logger.info(
+                    "已註冊充電座看門狗任務：device=%s interval=%ss",
+                    device.id,
+                    settings.watchdog.check_interval_seconds,
+                )
 
         now_utc = datetime.now(timezone.utc)
         now_local = now_utc.astimezone(self._user_tz)
@@ -163,10 +183,14 @@ class AutomationEngine:
                 continue
 
             next_run_utc = (
-                job.next_run_time.astimezone(timezone.utc) if job.next_run_time else None
+                job.next_run_time.astimezone(timezone.utc)
+                if job.next_run_time
+                else None
             )
             next_run_local = (
-                job.next_run_time.astimezone(self._user_tz) if job.next_run_time else None
+                job.next_run_time.astimezone(self._user_tz)
+                if job.next_run_time
+                else None
             )
 
             cfg = config_map.get(job.id)
@@ -183,7 +207,9 @@ class AutomationEngine:
                     "zones": zones,
                     "est_duration": est_duration,
                     "next_run_utc": next_run_utc.isoformat() if next_run_utc else None,
-                    "next_run_local": next_run_local.isoformat() if next_run_local else None,
+                    "next_run_local": next_run_local.isoformat()
+                    if next_run_local
+                    else None,
                     "timezone": str(self._user_tz),
                 }
             )
@@ -319,7 +345,9 @@ class AutomationEngine:
                 return
 
             recent_threshold_sec = recent_cleaning_minutes * 60
-            first_clean_time_sec = self._parse_clean_time_to_sec(first_status.cleaning_since)
+            first_clean_time_sec = self._parse_clean_time_to_sec(
+                first_status.cleaning_since
+            )
             if first_clean_time_sec > recent_threshold_sec:
                 logger.info(
                     "備援守門略過：device=%s 初次清掃時長=%ss 超過門檻=%ss",
@@ -347,7 +375,9 @@ class AutomationEngine:
                 )
                 return
 
-            second_clean_time_sec = self._parse_clean_time_to_sec(second_status.cleaning_since)
+            second_clean_time_sec = self._parse_clean_time_to_sec(
+                second_status.cleaning_since
+            )
             if second_clean_time_sec > recent_threshold_sec:
                 logger.info(
                     "備援守門二次確認略過：device=%s 二次清掃時長=%ss 超過門檻=%ss",
@@ -439,7 +469,12 @@ class AutomationEngine:
                 reason = f"任務衝突：設備目前狀態為 {status.state}"
                 logger.warning("%s，略過此次排程。", reason)
                 self._emit_event(
-                    run_id, task_id, device_id, zones, event_type="skipped", reason=reason
+                    run_id,
+                    task_id,
+                    device_id,
+                    zones,
+                    event_type="skipped",
+                    reason=reason,
                 )
                 return
 
@@ -447,7 +482,12 @@ class AutomationEngine:
                 reason = f"電量不足：{status.battery}%"
                 logger.warning("%s，略過此次排程。", reason)
                 self._emit_event(
-                    run_id, task_id, device_id, zones, event_type="skipped", reason=reason
+                    run_id,
+                    task_id,
+                    device_id,
+                    zones,
+                    event_type="skipped",
+                    reason=reason,
                 )
                 return
 
@@ -455,7 +495,9 @@ class AutomationEngine:
                 last_est_end_ts = self.last_run_info[device_id]["est_end_ts"]
                 if now_ts < last_est_end_ts:
                     remaining = (last_est_end_ts - now_ts) / 60
-                    reason = f"任務重疊：前次任務預估尚未結束（剩餘 {remaining:.1f} 分鐘）"
+                    reason = (
+                        f"任務重疊：前次任務預估尚未結束（剩餘 {remaining:.1f} 分鐘）"
+                    )
                     logger.warning("%s，略過此次排程。", reason)
                     self._emit_event(
                         run_id,
@@ -488,7 +530,9 @@ class AutomationEngine:
                 "start_ts": now_ts,
                 "start_battery": status.battery,
                 "start_area": float(status.cleaned_area),
-                "start_clean_time_sec": self._parse_clean_time_to_sec(status.cleaning_since),
+                "start_clean_time_sec": self._parse_clean_time_to_sec(
+                    status.cleaning_since
+                ),
                 "non_cleaning_count": 0,
             }
 
@@ -542,7 +586,11 @@ class AutomationEngine:
 
             # Busy/Unreachable 先延後判定，避免誤判結束
             lower_state = state.lower()
-            if "offline" in lower_state or "unreachable" in lower_state or "busy" in lower_state:
+            if (
+                "offline" in lower_state
+                or "unreachable" in lower_state
+                or "busy" in lower_state
+            ):
                 logger.info("設備 %s 目前狀態 %s，暫不判定 run 結束", device_id, state)
                 continue
 
@@ -553,8 +601,12 @@ class AutomationEngine:
             ended_at_utc = now
             started_at_utc = datetime.fromisoformat(run["started_at_utc"])
             duration_sec = max(0, int((ended_at_utc - started_at_utc).total_seconds()))
-            area_delta = max(0.0, float(status.cleaned_area) - float(run.get("start_area", 0.0)))
-            battery_delta = max(0, int(run.get("start_battery", 0)) - int(status.battery))
+            area_delta = max(
+                0.0, float(status.cleaned_area) - float(run.get("start_area", 0.0))
+            )
+            battery_delta = max(
+                0, int(run.get("start_battery", 0)) - int(status.battery)
+            )
             zones = run.get("zones", [])
 
             try:
@@ -581,7 +633,9 @@ class AutomationEngine:
                     event_type="completed",
                 )
             except Exception as exc:
-                logger.error("寫入執行完成紀錄失敗: run_id=%s error=%s", run["run_id"], exc)
+                logger.error(
+                    "寫入執行完成紀錄失敗: run_id=%s error=%s", run["run_id"], exc
+                )
 
             self.active_runs.pop(device_id, None)
             logger.info(
@@ -592,6 +646,22 @@ class AutomationEngine:
                 area_delta,
                 battery_delta,
             )
+
+    def _charging_watchdog_job(self, device_id: str) -> None:
+        """充電座看門狗檢查任務"""
+        try:
+            from vacuumd.controller.charging_watchdog import (
+                charging_watchdog,
+                init_charging_watchdog,
+            )
+
+            if charging_watchdog is None:
+                init_charging_watchdog()
+
+            if charging_watchdog:
+                charging_watchdog.check(device_id)
+        except Exception as exc:
+            logger.error("充電座看門狗執行失敗：device=%s error=%s", device_id, exc)
 
 
 automation = AutomationEngine()

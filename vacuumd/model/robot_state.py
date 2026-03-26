@@ -13,6 +13,8 @@ class VacuumState(BaseModel):
     is_reachable: bool = True  # 新增：標記設備在 LAN 是否可連線
     water_box_attached: Optional[bool] = False
     error: Optional[str] = None
+    state_code: Optional[int] = None  # miIO 狀態碼
+    error_code: Optional[int] = None  # miIO 錯誤碼
 
     @classmethod
     def from_miio(cls, status: Any, reachable: bool = True):
@@ -46,4 +48,6 @@ class VacuumState(BaseModel):
             and "disconnected" not in state_str.lower(),
             water_box_attached=getattr(status, "water_box_attached", False),
             error=getattr(status, "error", None),
+            state_code=getattr(status, "state_code", None),
+            error_code=getattr(status, "error_code", None),
         )

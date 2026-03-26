@@ -5,6 +5,8 @@ from zoneinfo import ZoneInfo
 from pydantic import BaseModel, Field
 from typing import List, Dict, Optional
 
+from vacuumd.model.watchdog_state import WatchdogConfig
+
 
 class DeviceConfig(BaseModel):
     """個別掃地機器人的配置資訊。"""
@@ -58,6 +60,7 @@ class Settings(BaseModel):
     devices: List[DeviceConfig]
     server: ServerConfig
     schedules: List[ScheduleConfig] = Field(default_factory=list)
+    watchdog: WatchdogConfig = Field(default_factory=WatchdogConfig)
 
 
 def load_settings() -> Settings:
@@ -132,8 +135,10 @@ def save_schedules(schedules: List[ScheduleConfig]):
 
     # 準備新的 schedules 資料
     new_data = [s.model_dump(exclude_none=True) for s in schedules]
-    # 這裡使用 yaml.dump 生成字串，縮排設為 2 
-    new_yaml_str = yaml.dump({"schedules": new_data}, allow_unicode=True, sort_keys=False, indent=2)
+    # 這裡使用 yaml.dump 生成字串，縮排設為 2
+    new_yaml_str = yaml.dump(
+        {"schedules": new_data}, allow_unicode=True, sort_keys=False, indent=2
+    )
 
     # 組合新內容
     final_content = ""
@@ -155,13 +160,13 @@ def save_schedules(schedules: List[ScheduleConfig]):
             f.write(final_content)
             f.flush()
             os.fsync(f.fileno())  # 強制寫入磁碟實體層
-        
+
         # 更名 (在 Linux 上為原子性操作)
         os.replace(tmp_path, config_path)
-        
+
         # 給予一點安全容許時間讓作業系統或後端處理程序穩定 (回應使用者需求)
         time.sleep(0.5)
-        
+
     except Exception as e:
         if tmp_path.exists():
             os.remove(tmp_path)

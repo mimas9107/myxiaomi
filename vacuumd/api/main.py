@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-from vacuumd.api.routes import devices, control, schedules, history
+from vacuumd.api.routes import devices, control, schedules, history, watchdog
 from vacuumd.config.settings import settings
 from vacuumd.scheduler.engine import automation
 from vacuumd.controller.cloud_faker import cloud_faker
@@ -115,6 +115,7 @@ app.include_router(devices.router, prefix="/v1/devices", tags=["設備管理"])
 app.include_router(control.router, prefix="/v1/control", tags=["清掃控制"])
 app.include_router(schedules.router, prefix="/v1/schedules", tags=["排程管理"])
 app.include_router(history.router, prefix="/v1/history", tags=["排程歷史"])
+app.include_router(watchdog.router, prefix="/v1/watchdog", tags=["充電看門狗"])
 
 # 設定靜態資源路徑 (用於提供 JS/CSS 等資源)
 view_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "view")

@@ -22,6 +22,19 @@ server:
   # 使用者時區 (IANA 格式)。cron 排程時間依此時區解讀，內部邏輯統一 UTC。
   timezone: "Asia/Taipei"
 
+watchdog:
+  enabled: true
+  check_interval_seconds: 60
+  confirmation_count: 2
+  suppress_window_start: ":00"
+  suppress_window_end: ":35"
+  post_cleaning_grace_minutes: 10
+  post_trigger_cooldown_minutes: 15
+  battery_stagnant_window_minutes: 15
+  min_reliable_battery: 5
+  oscillation_threshold: 3
+  oscillation_window_minutes: 5
+
 schedules:
 - task_id: kitchen_evening
   device_id: robot_s5
