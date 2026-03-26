@@ -95,3 +95,5 @@ class WatchdogConfig(BaseModel):
     min_reliable_battery: int = 5
     oscillation_threshold: int = 3
     oscillation_window_minutes: int = 5
+    daily_start_hour: int = 7
+    daily_end_hour: int = 22

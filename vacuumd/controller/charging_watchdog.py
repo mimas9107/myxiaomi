@@ -217,6 +217,14 @@ class ChargingWatchdog:
         if not self.config.enabled:
             return SuppressReason.SCHEDULE_WINDOW
 
+        local_now = datetime.now()
+        current_hour = local_now.hour
+        if (
+            current_hour < self.config.daily_start_hour
+            or current_hour >= self.config.daily_end_hour
+        ):
+            return SuppressReason.SCHEDULE_WINDOW
+
         minute = now.minute
         if 0 <= minute <= 35:
             return SuppressReason.SCHEDULE_WINDOW
@@ -437,5 +445,7 @@ def init_charging_watchdog(config: Optional[WatchdogConfig] = None):
             min_reliable_battery=settings.watchdog.min_reliable_battery,
             oscillation_threshold=settings.watchdog.oscillation_threshold,
             oscillation_window_minutes=settings.watchdog.oscillation_window_minutes,
+            daily_start_hour=settings.watchdog.daily_start_hour,
+            daily_end_hour=settings.watchdog.daily_end_hour,
         )
     charging_watchdog = ChargingWatchdog(config)

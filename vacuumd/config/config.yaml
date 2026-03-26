@@ -34,6 +34,8 @@ watchdog:
   min_reliable_battery: 5
   oscillation_threshold: 3
   oscillation_window_minutes: 5
+  daily_start_hour: 7
+  daily_end_hour: 22
 
 schedules:
 - task_id: kitchen_evening
