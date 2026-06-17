@@ -177,8 +177,11 @@ class AutomationEngine:
         config_map = {s.task_id: s for s in settings.schedules}
 
         for job in jobs:
-            if job.id == SYSTEM_JOB_RECONCILE_ID or job.id.startswith(
-                SYSTEM_JOB_FALLBACK_PREFIX
+            # 排除系統內部工作 (如 Reconcile, Fallback Guard, Watchdog)
+            if (
+                job.id == SYSTEM_JOB_RECONCILE_ID
+                or job.id.startswith(SYSTEM_JOB_FALLBACK_PREFIX)
+                or job.id.startswith(SYSTEM_JOB_WATCHDOG_PREFIX)
             ):
                 continue
 

@@ -1,3 +1,13 @@
+---
+name:          "SPEC.md"
+description:   "專案規格說明書"
+created_date:  "2026/03/05 00:00:00"
+modified_date: "2026/06/17 10:00:00"
+project_version: "0.3.13"
+document_version: "1.0.0"
+agent_sign: ['gemini cli/antigravity']
+---
+
 # vacuumd 專案規格說明書
 專案名稱
 

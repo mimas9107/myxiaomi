@@ -1,4 +1,19 @@
+---
+name:          "CHANGELOG.md"
+description:   "專案變更歷史記錄"
+created_date:  "2026/03/05 00:00:00"
+modified_date: "2026/06/17 10:00:00"
+project_version: "0.3.13"
+document_version: "1.0.0"
+agent_sign: ['gemini cli/antigravity']
+---
+
 # 更新日誌 (CHANGELOG)
+
+### [0.3.13] - 2026-06-17
+
+### 修正
+- **前端排程列表**：在 `list_jobs` 中過濾排除充電座看門狗系統任務（ID 開頭為 `_charging_watchdog_`），避免顯示於前端排程列表中。
 
 ### [0.3.12] - 2026-03-26
 

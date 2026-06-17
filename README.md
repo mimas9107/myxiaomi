@@ -1,6 +1,16 @@
+---
+name:          "README.md"
+description:   "專案說明文件"
+created_date:  "2026/03/05 00:00:00"
+modified_date: "2026/06/17 10:00:00"
+project_version: "0.3.13"
+document_version: "1.0.1"
+agent_sign: ['gemini cli/antigravity']
+---
+
 # vacuumd 專案說明書
 
-版本：0.3.11
+版本：0.3.13
 
 ## 專案簡介
 vacuumd 是一個針對 Roborock / Xiaomi 掃地機器人開發的家庭內網（LAN）控制器。本專案透過封裝底層 miIO 通訊協議，提供具備高可靠性、狀態快取以及智慧排程功能的控制系統。
